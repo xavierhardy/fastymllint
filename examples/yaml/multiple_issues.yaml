@@ -1,0 +1,11 @@
+# This is a comment with no starting space
+key : value # Trailing space here 
+another_key: value
+another_key: duplicated key
+
+list: [item1,item2 ]
+object: {key: value }
+
+  # incorrectly indented comment
+    - item1
+  - item2
