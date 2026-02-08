@@ -37,7 +37,7 @@ impl Rule for Braces {
         let content = &ctx.content;
 
         for (line_idx, line) in content.lines().enumerate() {
-            let mut chars = line.chars().peekable();
+            let chars = line.chars().peekable();
             let mut i = 0;
 
             while i < line.len() {

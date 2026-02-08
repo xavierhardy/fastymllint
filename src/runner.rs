@@ -6,7 +6,6 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
 
-use crate::language::BoxedLanguage;
 use crate::languages::LanguageRegistry;
 use crate::{Config, Diagnostic};
 
