@@ -58,7 +58,12 @@ pub struct Fix {
 }
 
 impl Fix {
-    pub fn new(description: impl Into<String>, replacement: impl Into<String>, start: Location, end: Location) -> Self {
+    pub fn new(
+        description: impl Into<String>,
+        replacement: impl Into<String>,
+        start: Location,
+        end: Location,
+    ) -> Self {
         Self {
             description: description.into(),
             replacement: replacement.into(),
@@ -66,9 +71,13 @@ impl Fix {
             end,
         }
     }
-    
+
     /// Create a fix that inserts text at a location
-    pub fn insert(description: impl Into<String>, text: impl Into<String>, location: Location) -> Self {
+    pub fn insert(
+        description: impl Into<String>,
+        text: impl Into<String>,
+        location: Location,
+    ) -> Self {
         Self {
             description: description.into(),
             replacement: text.into(),
@@ -76,7 +85,7 @@ impl Fix {
             end: location,
         }
     }
-    
+
     /// Create a fix that deletes text between two locations
     pub fn delete(description: impl Into<String>, start: Location, end: Location) -> Self {
         Self {
@@ -106,7 +115,12 @@ pub struct Diagnostic {
 }
 
 impl Diagnostic {
-    pub fn new(rule: impl Into<String>, severity: Severity, message: impl Into<String>, location: Location) -> Self {
+    pub fn new(
+        rule: impl Into<String>,
+        severity: Severity,
+        message: impl Into<String>,
+        location: Location,
+    ) -> Self {
         Self {
             rule: rule.into(),
             severity,
@@ -121,7 +135,11 @@ impl Diagnostic {
         Self::new(rule, Severity::Error, message, location)
     }
 
-    pub fn warning(rule: impl Into<String>, message: impl Into<String>, location: Location) -> Self {
+    pub fn warning(
+        rule: impl Into<String>,
+        message: impl Into<String>,
+        location: Location,
+    ) -> Self {
         Self::new(rule, Severity::Warning, message, location)
     }
 

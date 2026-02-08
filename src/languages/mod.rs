@@ -2,8 +2,8 @@
 
 pub mod yaml;
 
-use std::path::Path;
 use crate::language::BoxedLanguage;
+use std::path::Path;
 
 /// Registry of all supported languages
 pub struct LanguageRegistry {
@@ -14,12 +14,10 @@ impl LanguageRegistry {
     /// Create a new registry with all built-in languages
     pub fn new() -> Self {
         Self {
-            languages: vec![
-                Box::new(yaml::YamlLanguage::new()),
-            ],
+            languages: vec![Box::new(yaml::YamlLanguage::new())],
         }
     }
-    
+
     /// Detect which language handles a file
     pub fn detect(&self, path: &Path) -> Option<&dyn crate::Language> {
         self.languages
@@ -27,7 +25,7 @@ impl LanguageRegistry {
             .find(|lang| lang.detect(path))
             .map(|lang| lang.as_ref())
     }
-    
+
     /// Get all registered languages
     pub fn languages(&self) -> &[BoxedLanguage] {
         &self.languages

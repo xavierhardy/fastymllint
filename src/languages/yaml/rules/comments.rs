@@ -37,50 +37,63 @@ impl Rule for Comments {
                 if self.ignore_shebangs && line_idx == 0 && line.starts_with("#!") {
                     continue;
                 }
-                
+
                 // Check starting space
                 if self.require_starting_space {
-                     if comment_start + 1 < line.len() {
-                         let next_char = line[comment_start+1..].chars().next();
-                         if let Some(c) = next_char {
-                             if c != ' ' && c != '#' { // Allow '##' for headers/sections
-                                  diagnostics.push(Diagnostic {
+                    if comment_start + 1 < line.len() {
+                        let next_char = line[comment_start + 1..].chars().next();
+                        if let Some(c) = next_char {
+                            if c != ' ' && c != '#' {
+                                // Allow '##' for headers/sections
+                                diagnostics.push(Diagnostic {
                                     severity: Severity::Error,
                                     message: "too few spaces before comment".to_string(), // Actually "missing starting space"
-                                    location: Location { line: line_idx + 1, column: comment_start + 1 },
-                                    end_location: Some(Location { line: line_idx + 1, column: comment_start + 2 }),
+                                    location: Location {
+                                        line: line_idx + 1,
+                                        column: comment_start + 1,
+                                    },
+                                    end_location: Some(Location {
+                                        line: line_idx + 1,
+                                        column: comment_start + 2,
+                                    }),
                                     fix: None,
                                     rule: self.name().to_string(),
                                 });
-                             }
-                         }
-                     }
+                            }
+                        }
+                    }
                 }
-                
+
                 // Check min spaces from content
                 if comment_start > 0 {
                     let before_comment = &line[..comment_start];
                     if !before_comment.trim().is_empty() {
-                         // Content exists before comment
-                         let mut spaces = 0;
-                         for c in before_comment.chars().rev() {
-                             if c == ' ' {
-                                 spaces += 1;
-                             } else {
-                                 break;
-                             }
-                         }
-                         
-                         if spaces < self.min_spaces_from_content {
-                              diagnostics.push(Diagnostic {
+                        // Content exists before comment
+                        let mut spaces = 0;
+                        for c in before_comment.chars().rev() {
+                            if c == ' ' {
+                                spaces += 1;
+                            } else {
+                                break;
+                            }
+                        }
+
+                        if spaces < self.min_spaces_from_content {
+                            diagnostics.push(Diagnostic {
                                 severity: Severity::Error,
                                 message: "too few spaces before comment".to_string(),
-                                location: Location { line: line_idx + 1, column: comment_start + 1 - spaces },
-                                end_location: Some(Location { line: line_idx + 1, column: comment_start + 1 }),
+                                location: Location {
+                                    line: line_idx + 1,
+                                    column: comment_start + 1 - spaces,
+                                },
+                                end_location: Some(Location {
+                                    line: line_idx + 1,
+                                    column: comment_start + 1,
+                                }),
                                 fix: None,
                                 rule: self.name().to_string(),
                             });
-                         }
+                        }
                     }
                 }
             }
@@ -99,7 +112,10 @@ mod tests {
 
     #[test]
     fn test_comments_starting_space() {
-        let rule = Comments { require_starting_space: true, ..Default::default() };
+        let rule = Comments {
+            require_starting_space: true,
+            ..Default::default()
+        };
         let content = "#comment";
         let ctx = RuleContext::new(content);
         let diagnostics = rule.check(&ctx);
@@ -109,7 +125,11 @@ mod tests {
 
     #[test]
     fn test_comments_min_spaces() {
-        let rule = Comments { min_spaces_from_content: 2, require_starting_space: false, ..Default::default() };
+        let rule = Comments {
+            min_spaces_from_content: 2,
+            require_starting_space: false,
+            ..Default::default()
+        };
         let content = "key: value #comment";
         let ctx = RuleContext::new(content);
         let diagnostics = rule.check(&ctx);
@@ -119,7 +139,9 @@ mod tests {
 
     #[test]
     fn test_comments_shebang() {
-        let rule = Comments { ..Default::default() };
+        let rule = Comments {
+            ..Default::default()
+        };
         let content = "#!/bin/bash";
         let ctx = RuleContext::new(content);
         let diagnostics = rule.check(&ctx);

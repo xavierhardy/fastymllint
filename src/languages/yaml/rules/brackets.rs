@@ -39,10 +39,10 @@ impl Rule for Brackets {
         for (line_idx, line) in content.lines().enumerate() {
             let mut i = 0;
             while i < line.len() {
-                 if let Some(c) = line[i..].chars().next() {
+                if let Some(c) = line[i..].chars().next() {
                     if c == '[' {
                         if self.forbid {
-                             diagnostics.push(Diagnostic {
+                            diagnostics.push(Diagnostic {
                                 severity: Severity::Error,
                                 message: "flow sequences are forbidden".to_string(),
                                 location: Location {
@@ -50,49 +50,62 @@ impl Rule for Brackets {
                                     column: i + 1,
                                 },
                                 end_location: Some(Location {
-                                     line: line_idx + 1,
-                                     column: i + 1 + c.len_utf8(),
+                                    line: line_idx + 1,
+                                    column: i + 1 + c.len_utf8(),
                                 }),
                                 fix: None,
                                 rule: self.name().to_string(),
                             });
                         }
-                        
+
                         if !self.forbid {
-                             let rest_of_line = &line[i+c.len_utf8()..];
-                             if let Some(next_char) = rest_of_line.chars().next() {
-                                 if next_char != ' ' && self.min_spaces_inside > 0 {
-                                     if next_char == ']' {
-                                         if let Some(min_empty) = self.min_spaces_inside_empty {
-                                             if min_empty > 0 {
-                                                  diagnostics.push(Diagnostic {
+                            let rest_of_line = &line[i + c.len_utf8()..];
+                            if let Some(next_char) = rest_of_line.chars().next() {
+                                if next_char != ' ' && self.min_spaces_inside > 0 {
+                                    if next_char == ']' {
+                                        if let Some(min_empty) = self.min_spaces_inside_empty {
+                                            if min_empty > 0 {
+                                                diagnostics.push(Diagnostic {
                                                     severity: Severity::Error,
-                                                    message: "too few spaces inside empty brackets".to_string(),
-                                                    location: Location { line: line_idx + 1, column: i + 1 },
-                                                    end_location: Some(Location { line: line_idx + 1, column: i + 1 + c.len_utf8() }),
+                                                    message: "too few spaces inside empty brackets"
+                                                        .to_string(),
+                                                    location: Location {
+                                                        line: line_idx + 1,
+                                                        column: i + 1,
+                                                    },
+                                                    end_location: Some(Location {
+                                                        line: line_idx + 1,
+                                                        column: i + 1 + c.len_utf8(),
+                                                    }),
                                                     fix: None,
                                                     rule: self.name().to_string(),
                                                 });
-                                             }
-                                         }
-                                     } else {
-                                          diagnostics.push(Diagnostic {
+                                            }
+                                        }
+                                    } else {
+                                        diagnostics.push(Diagnostic {
                                             severity: Severity::Error,
                                             message: "too few spaces inside brackets".to_string(),
-                                            location: Location { line: line_idx + 1, column: i + 1 },
-                                            end_location: Some(Location { line: line_idx + 1, column: i + 1 + c.len_utf8() }),
+                                            location: Location {
+                                                line: line_idx + 1,
+                                                column: i + 1,
+                                            },
+                                            end_location: Some(Location {
+                                                line: line_idx + 1,
+                                                column: i + 1 + c.len_utf8(),
+                                            }),
                                             fix: None,
                                             rule: self.name().to_string(),
                                         });
-                                     }
-                                 }
-                             }
+                                    }
+                                }
+                            }
                         }
                     }
                     i += c.len_utf8();
-                 } else {
-                     break;
-                 }
+                } else {
+                    break;
+                }
             }
         }
 
@@ -110,7 +123,10 @@ mod tests {
 
     #[test]
     fn test_brackets_forbid() {
-        let rule = Brackets { forbid: true, ..Default::default() };
+        let rule = Brackets {
+            forbid: true,
+            ..Default::default()
+        };
         let content = "[item]";
         let ctx = RuleContext::new(content);
         let diagnostics = rule.check(&ctx);
@@ -120,7 +136,10 @@ mod tests {
 
     #[test]
     fn test_brackets_min_spaces() {
-        let rule = Brackets { min_spaces_inside: 1, ..Default::default() };
+        let rule = Brackets {
+            min_spaces_inside: 1,
+            ..Default::default()
+        };
         let content = "[item]";
         let ctx = RuleContext::new(content);
         let diagnostics = rule.check(&ctx);

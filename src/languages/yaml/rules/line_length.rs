@@ -18,7 +18,7 @@ impl LineLength {
             allow_non_breakable_inline_mappings: false,
         }
     }
-    
+
     pub fn with_options(
         max: usize,
         allow_non_breakable_words: bool,
@@ -30,11 +30,11 @@ impl LineLength {
             allow_non_breakable_inline_mappings,
         }
     }
-    
+
     fn is_non_breakable_word(&self, line: &str) -> bool {
         // Check if the line contains a single long word (like a URL)
         let trimmed = line.trim();
-        
+
         // If the line has no spaces after trimming leading content, it's non-breakable
         if let Some(pos) = trimmed.rfind(|c: char| c.is_whitespace() || c == ':') {
             let after_space = &trimmed[pos + 1..];
@@ -45,7 +45,7 @@ impl LineLength {
             trimmed.len() > self.max && !trimmed.contains(' ')
         }
     }
-    
+
     fn is_inline_mapping(&self, line: &str) -> bool {
         let trimmed = line.trim();
         trimmed.contains(": ") && !trimmed.starts_with('-') && !trimmed.starts_with('#')
@@ -62,11 +62,11 @@ impl Rule for LineLength {
     fn name(&self) -> &'static str {
         "line-length"
     }
-    
+
     fn description(&self) -> &'static str {
         "Limit line length to a maximum number of characters"
     }
-    
+
     fn check(&self, ctx: &RuleContext) -> Vec<Diagnostic> {
         ctx.lines
             .iter()
@@ -81,7 +81,7 @@ impl Rule for LineLength {
                     if self.allow_non_breakable_inline_mappings && self.is_inline_mapping(line) {
                         return None;
                     }
-                    
+
                     let line_num = idx + 1;
                     Some(Diagnostic::warning(
                         self.name(),
@@ -94,7 +94,7 @@ impl Rule for LineLength {
             })
             .collect()
     }
-    
+
     fn is_fixable(&self) -> bool {
         false // Line length is not auto-fixable
     }
@@ -103,25 +103,27 @@ impl Rule for LineLength {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_line_length_detection() {
-        let content = "short\nthis is a very long line that exceeds the maximum length limit we have set\nok";
+        let content =
+            "short\nthis is a very long line that exceeds the maximum length limit we have set\nok";
         let ctx = RuleContext::new(content);
         let rule = LineLength::new(40);
         let diagnostics = rule.check(&ctx);
-        
+
         assert_eq!(diagnostics.len(), 1);
         assert_eq!(diagnostics[0].location.line, 2);
     }
-    
+
     #[test]
     fn test_allow_non_breakable_words() {
-        let content = "url: https://very-long-url.example.com/with/a/very/long/path/that/exceeds/limit";
+        let content =
+            "url: https://very-long-url.example.com/with/a/very/long/path/that/exceeds/limit";
         let ctx = RuleContext::new(content);
         let rule = LineLength::with_options(40, true, false);
         let diagnostics = rule.check(&ctx);
-        
+
         assert!(diagnostics.is_empty());
     }
 }

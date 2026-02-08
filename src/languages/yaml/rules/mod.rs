@@ -1,27 +1,27 @@
 //! YAML lint rules
 
-mod trailing_spaces;
-mod line_length;
-mod new_line_at_end;
-mod indentation;
-mod document_markers;
-mod empty_lines;
-mod key_duplicates;
+mod anchors;
 mod braces;
 mod brackets;
 mod colons;
 mod commas;
 mod comments;
 mod comments_indentation;
+mod document_markers;
+mod empty_lines;
 mod empty_values;
 mod float_values;
 mod hyphens;
+mod indentation;
+mod key_duplicates;
 mod key_ordering;
+mod line_length;
+mod new_line_at_end;
 mod new_lines;
 mod octal_values;
 mod quoted_strings;
+mod trailing_spaces;
 mod truthy;
-mod anchors;
 
 use anyhow::Result;
 
@@ -29,28 +29,28 @@ use crate::config::LanguageConfig;
 use crate::diagnostic::Diagnostic;
 use crate::rule::{BoxedRule, RuleContext};
 
-pub use trailing_spaces::{TrailingSpaces, fix_trailing_spaces};
-pub use line_length::LineLength;
-pub use new_line_at_end::{NewLineAtEndOfFile, fix_new_line_at_end};
-pub use indentation::Indentation;
-pub use document_markers::{DocumentStart, DocumentEnd, fix_document_start, fix_document_end};
-pub use empty_lines::{EmptyLines, fix_empty_lines};
-pub use key_duplicates::KeyDuplicates;
+pub use anchors::Anchors;
 pub use braces::Braces;
 pub use brackets::Brackets;
 pub use colons::Colons;
 pub use commas::Commas;
 pub use comments::Comments;
 pub use comments_indentation::CommentsIndentation;
+pub use document_markers::{DocumentEnd, DocumentStart, fix_document_end, fix_document_start};
+pub use empty_lines::{EmptyLines, fix_empty_lines};
 pub use empty_values::EmptyValues;
 pub use float_values::FloatValues;
 pub use hyphens::Hyphens;
+pub use indentation::Indentation;
+pub use key_duplicates::KeyDuplicates;
 pub use key_ordering::KeyOrdering;
+pub use line_length::LineLength;
+pub use new_line_at_end::{NewLineAtEndOfFile, fix_new_line_at_end};
 pub use new_lines::NewLines;
 pub use octal_values::OctalValues;
 pub use quoted_strings::QuotedStrings;
+pub use trailing_spaces::{TrailingSpaces, fix_trailing_spaces};
 pub use truthy::Truthy;
-pub use anchors::Anchors;
 
 /// Collection of all YAML rules
 pub struct RuleSet {
@@ -61,7 +61,7 @@ impl RuleSet {
     pub fn new(rules: Vec<BoxedRule>) -> Self {
         Self { rules }
     }
-    
+
     /// Check content against all enabled rules
     pub fn check(&self, ctx: &RuleContext, config: Option<&LanguageConfig>) -> Vec<Diagnostic> {
         self.rules
@@ -75,37 +75,37 @@ impl RuleSet {
             .flat_map(|rule| rule.check(ctx))
             .collect()
     }
-    
+
     /// Apply fixes from all fixable rules
     pub fn fix(&self, content: &str, config: Option<&LanguageConfig>) -> Result<String> {
         let mut result = content.to_string();
-        
+
         // Apply trailing spaces fix
         if is_rule_enabled(config, "trailing-spaces") {
             result = trailing_spaces::fix_trailing_spaces(&result);
         }
-        
+
         // Apply new line at end fix
         if is_rule_enabled(config, "new-line-at-end-of-file") {
             result = new_line_at_end::fix_new_line_at_end(&result);
         }
-        
+
         // Apply empty lines fix
         if is_rule_enabled(config, "empty-lines") {
             let max = get_rule_option(config, "empty-lines", "max").unwrap_or(2);
             result = empty_lines::fix_empty_lines(&result, max);
         }
-        
+
         // Apply document start fix
         if is_rule_enabled_explicit(config, "document-start") {
             result = document_markers::fix_document_start(&result);
         }
-        
+
         // Apply document end fix
         if is_rule_enabled_explicit(config, "document-end") {
             result = document_markers::fix_document_end(&result);
         }
-        
+
         Ok(result)
     }
 }

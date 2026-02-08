@@ -21,17 +21,17 @@ impl<'a> RuleContext<'a> {
             file_path: None,
         }
     }
-    
+
     pub fn with_path(mut self, path: &'a str) -> Self {
         self.file_path = Some(path);
         self
     }
-    
+
     /// Get a specific line (1-indexed)
     pub fn line(&self, n: usize) -> Option<&'a str> {
         self.lines.get(n.saturating_sub(1)).copied()
     }
-    
+
     /// Get the total number of lines
     pub fn line_count(&self) -> usize {
         self.lines.len()
@@ -42,13 +42,13 @@ impl<'a> RuleContext<'a> {
 pub trait Rule: Send + Sync {
     /// Returns the unique name/identifier of this rule
     fn name(&self) -> &'static str;
-    
+
     /// Returns a brief description of what this rule checks
     fn description(&self) -> &'static str;
-    
+
     /// Check the content and return any diagnostics
     fn check(&self, ctx: &RuleContext) -> Vec<Diagnostic>;
-    
+
     /// Whether this rule can automatically fix issues
     fn is_fixable(&self) -> bool {
         false

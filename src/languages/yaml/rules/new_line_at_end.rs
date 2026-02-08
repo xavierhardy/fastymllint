@@ -10,20 +10,20 @@ impl Rule for NewLineAtEndOfFile {
     fn name(&self) -> &'static str {
         "new-line-at-end-of-file"
     }
-    
+
     fn description(&self) -> &'static str {
         "Require a new line at the end of the file"
     }
-    
+
     fn check(&self, ctx: &RuleContext) -> Vec<Diagnostic> {
         if ctx.content.is_empty() {
             return vec![];
         }
-        
+
         if !ctx.content.ends_with('\n') {
             let line_count = ctx.line_count();
             let last_line_len = ctx.lines.last().map(|l| l.len()).unwrap_or(0);
-            
+
             vec![
                 Diagnostic::warning(
                     self.name(),
@@ -40,7 +40,7 @@ impl Rule for NewLineAtEndOfFile {
             vec![]
         }
     }
-    
+
     fn is_fixable(&self) -> bool {
         true
     }
@@ -58,25 +58,25 @@ pub fn fix_new_line_at_end(content: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_missing_newline() {
         let content = "hello: world";
         let ctx = RuleContext::new(content);
         let diagnostics = NewLineAtEndOfFile.check(&ctx);
-        
+
         assert_eq!(diagnostics.len(), 1);
     }
-    
+
     #[test]
     fn test_has_newline() {
         let content = "hello: world\n";
         let ctx = RuleContext::new(content);
         let diagnostics = NewLineAtEndOfFile.check(&ctx);
-        
+
         assert!(diagnostics.is_empty());
     }
-    
+
     #[test]
     fn test_fix_newline() {
         assert_eq!(fix_new_line_at_end("foo"), "foo\n");

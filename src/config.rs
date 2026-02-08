@@ -1,9 +1,9 @@
 //! Global configuration for the linter
 
-use std::collections::HashMap;
-use std::path::{Path, PathBuf};
 use anyhow::{Context, Result};
 use serde::Deserialize;
+use std::collections::HashMap;
+use std::path::{Path, PathBuf};
 
 /// Global linter configuration
 #[derive(Debug, Clone, Default, Deserialize)]
@@ -53,19 +53,17 @@ impl RuleConfig {
             RuleConfig::Enabled(enabled) => *enabled,
             RuleConfig::Enable(s) => s == "enable",
             RuleConfig::Detailed(map) => {
-                map.get("enable")
-                    .and_then(|v| v.as_bool())
-                    .unwrap_or(true)
+                map.get("enable").and_then(|v| v.as_bool()).unwrap_or(true)
             }
         }
     }
-    
+
     /// Get an option value
     pub fn get_option<T: for<'de> Deserialize<'de>>(&self, key: &str) -> Option<T> {
         match self {
-            RuleConfig::Detailed(map) => {
-                map.get(key).and_then(|v| serde_yaml_ng::from_value(v.clone()).ok())
-            }
+            RuleConfig::Detailed(map) => map
+                .get(key)
+                .and_then(|v| serde_yaml_ng::from_value(v.clone()).ok()),
             _ => None,
         }
     }
@@ -85,30 +83,28 @@ impl Config {
             ..Default::default()
         }
     }
-    
+
     /// Load configuration from a file
     pub fn load(path: &Path) -> Result<Self> {
         let content = std::fs::read_to_string(path)
             .with_context(|| format!("Failed to read config file: {}", path.display()))?;
-        
+
         let config: Config = serde_yaml_ng::from_str(&content)
             .with_context(|| format!("Failed to parse config file: {}", path.display()))?;
-        
+
         Ok(config)
     }
-    
+
     /// Get the configuration for a specific language
     pub fn language_config(&self, lang: &str) -> Option<&LanguageConfig> {
         self.languages.get(lang)
     }
-    
+
     /// Get the configuration for a specific rule in a language
     pub fn rule_config(&self, lang: &str, rule: &str) -> Option<&RuleConfig> {
-        self.languages
-            .get(lang)
-            .and_then(|lc| lc.rules.get(rule))
+        self.languages.get(lang).and_then(|lc| lc.rules.get(rule))
     }
-    
+
     /// Check if a rule is enabled
     pub fn is_rule_enabled(&self, lang: &str, rule: &str) -> bool {
         self.rule_config(lang, rule)
