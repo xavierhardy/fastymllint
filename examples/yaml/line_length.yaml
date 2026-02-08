@@ -1,2 +1,4 @@
+---
 # This line is too long, exceeding the default 80 character limit which is often a default in linters to encourage readability and maintainability.
 key: value
+...

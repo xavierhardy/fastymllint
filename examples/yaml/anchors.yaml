@@ -1,2 +1,4 @@
+---
 item: &anchor_name value
 another_item: *anchor_name *anchor_name
+...
