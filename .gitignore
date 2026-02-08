@@ -1,0 +1,26 @@
+# Compiled binaries and libraries
+/target/
+
+# Rust-specific
+**/*.rs.bk
+Cargo.lock
+
+# IDE-specific
+.idea/
+.vscode/
+*.iml
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# Dependencies
+/vendor/
+/node_modules/
+
+# Logs and temporary files
+*.log
+*.tmp
+*.bak
+*~
+.history/
