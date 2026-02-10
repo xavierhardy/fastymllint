@@ -1,0 +1,41 @@
+# Done Tasks
+
+- 2026-02-10: Project structure setup with Rust.
+- 2026-02-10: Implement core `Language` and `Rule` traits.
+- 2026-02-10: Implement parallel `LintRunner` using `rayon`.
+- 2026-02-10: Implement YAML language support.
+- 2026-02-10: Implement YAML rule: `anchors`.
+- 2026-02-10: Implement YAML rule: `braces`.
+- 2026-02-10: Implement YAML rule: `brackets`.
+- 2026-02-10: Implement YAML rule: `colons`.
+- 2026-02-10: Implement YAML rule: `commas`.
+- 2026-02-10: Implement YAML rule: `comments`.
+- 2026-02-10: Implement YAML rule: `comments-indentation`.
+- 2026-02-10: Implement YAML rule: `document-start`.
+- 2026-02-10: Implement YAML rule: `document-end`.
+- 2026-02-10: Implement YAML rule: `empty-lines`.
+- 2026-02-10: Implement YAML rule: `empty-values`.
+- 2026-02-10: Implement YAML rule: `float-values`.
+- 2026-02-10: Implement YAML rule: `hyphens`.
+- 2026-02-10: Implement YAML rule: `indentation`.
+- 2026-02-10: Implement YAML rule: `key-duplicates`.
+- 2026-02-10: Implement YAML rule: `key-ordering`.
+- 2026-02-10: Implement YAML rule: `line-length`.
+- 2026-02-10: Implement YAML rule: `new-line-at-end-of-file`.
+- 2026-02-10: Implement YAML rule: `new-lines`.
+- 2026-02-10: Implement YAML rule: `octal-values`.
+- 2026-02-10: Implement YAML rule: `quoted-strings`.
+- 2026-02-10: Implement YAML rule: `trailing-spaces`.
+- 2026-02-10: Implement YAML rule: `truthy`.
+- 2026-02-10: Implement auto-fix for `trailing-spaces`.
+- 2026-02-10: Implement auto-fix for `new-line-at-end-of-file`.
+- 2026-02-10: Implement auto-fix for `empty-lines`.
+- 2026-02-10: Implement auto-fix for `document-start`.
+- 2026-02-10: Implement auto-fix for `document-end`.
+- 2026-02-10: Basic CLI implementation with `clap`.
+- 2026-02-10: Create `GEMINI.md` for AI instructions and update project references.
+- 2026-02-10: Update `GEMINI.md` with mandatory lint, test, and build requirements.
+- 2026-02-10: Refine `GEMINI.md` to only use project-specific shell scripts for verification.
+- 2026-02-10: Add mandatory documentation update requirement to `GEMINI.md`.
+- 2026-02-10: Move `DONE_TASKS.md` to `docs/` and update project-wide references.
+- 2026-02-10: Enforce date format in `docs/DONE_TASKS.md` via `GEMINI.md`.

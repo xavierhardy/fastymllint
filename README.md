@@ -66,7 +66,7 @@ megalinter fix [OPTIONS] [PATHS]...
     megalinter fix --dry-run src/my_file.yaml
     ```
 
-### Format
+### format
 
 The `format` command formats files according to style rules.
 
@@ -91,3 +91,16 @@ megalinter format [OPTIONS] [PATHS]...
     ```bash
     megalinter format --check src/
     ```
+
+## Documentation
+
+- [Architecture](docs/ARCHITECTURE.md)
+- [AI Instructions](GEMINI.md)
+- [Tasks](TASKS.md)
+- [Done Tasks](docs/DONE_TASKS.md)
+
+## Development
+
+### AI Assistance
+
+This project uses specific guidelines for AI contributors. If you are using an AI assistant to help with development, please ensure it reads [GEMINI.md](GEMINI.md) first.

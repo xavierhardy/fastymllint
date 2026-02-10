@@ -1,0 +1,90 @@
+# Tasks
+
+- Create unit test with at least 80% code coverage of current code, enforce it.
+
+## YAML Rules
+
+- Complete YAML rule: `anchors`
+- Implement configuration for YAML rule: `anchors`
+- Implement auto-fix for YAML rule: `anchors`
+- Complete YAML rule: `braces`
+- Implement configuration for YAML rule: `braces`
+- Implement auto-fix for YAML rule: `braces`
+- Complete YAML rule: `brackets`
+- Implement configuration for YAML rule: `brackets`
+- Implement auto-fix for YAML rule: `brackets`
+- Complete YAML rule: `colons`
+- Implement configuration for YAML rule: `colons`
+- Implement auto-fix for YAML rule: `colons`
+- Complete YAML rule: `commas`
+- Implement configuration for YAML rule: `commas`
+- Implement auto-fix for YAML rule: `commas`
+- Complete YAML rule: `comments`
+- Implement configuration for YAML rule: `comments`
+- Implement auto-fix for YAML rule: `comments`
+- Complete YAML rule: `comments-indentation`
+- Implement configuration for YAML rule: `comments-indentation`
+- Implement auto-fix for YAML rule: `comments-indentation`
+- Complete YAML rule: `document-start`
+- Implement configuration for YAML rule: `document-start`
+- Implement auto-fix for YAML rule: `document-start`
+- Complete YAML rule: `document-end`
+- Implement configuration for YAML rule: `document-end`
+- Implement auto-fix for YAML rule: `document-end`
+- Complete YAML rule: `empty-lines`
+- Implement configuration for YAML rule: `empty-lines`
+- Implement auto-fix for YAML rule: `empty-lines`
+- Complete YAML rule: `empty-values`
+- Implement configuration for YAML rule: `empty-values`
+- Implement auto-fix for YAML rule: `empty-values`
+- Complete YAML rule: `float-values`
+- Implement configuration for YAML rule: `float-values`
+- Implement auto-fix for YAML rule: `float-values`
+- Complete YAML rule: `hyphens`
+- Implement configuration for YAML rule: `hyphens`
+- Implement auto-fix for YAML rule: `hyphens`
+- Complete YAML rule: `indentation`
+- Implement configuration for YAML rule: `indentation`
+- Implement auto-fix for YAML rule: `indentation`
+- Complete YAML rule: `key-duplicates`
+- Implement configuration for YAML rule: `key-duplicates`
+- Implement auto-fix for YAML rule: `key-duplicates`
+- Complete YAML rule: `key-ordering`
+- Implement configuration for YAML rule: `key-ordering`
+- Implement auto-fix for YAML rule: `key-ordering`
+- Complete YAML rule: `line-length`
+- Implement configuration for YAML rule: `line-length`
+- Implement auto-fix for YAML rule: `line-length`
+- Complete YAML rule: `new-line-at-end-of-file`
+- Implement configuration for YAML rule: `new-line-at-end-of-file`
+- Implement auto-fix for YAML rule: `new-line-at-end-of-file`
+- Complete YAML rule: `new-lines`
+- Implement configuration for YAML rule: `new-lines`
+- Implement auto-fix for YAML rule: `new-lines`
+- Complete YAML rule: `octal-values`
+- Implement configuration for YAML rule: `octal-values`
+- Implement auto-fix for YAML rule: `octal-values`
+- Complete YAML rule: `quoted-strings`
+- Implement configuration for YAML rule: `quoted-strings`
+- Implement auto-fix for YAML rule: `quoted-strings`
+- Complete YAML rule: `trailing-spaces`
+- Implement configuration for YAML rule: `trailing-spaces`
+- Implement auto-fix for YAML rule: `trailing-spaces`
+- Complete YAML rule: `truthy`
+- Implement configuration for YAML rule: `truthy`
+- Implement auto-fix for YAML rule: `truthy`
+
+## Core & Other Languages
+
+- Refactor auto-fix system to be more extensible (move logic from `RuleSet` to individual `Rule`s)
+- Implement JSON language support
+- Implement TOML language support
+- Add support for project-wide configuration file (`.megalinter.toml`)
+- Implement more output formats (JSON, SARIF)
+- Add support for inline disabling of rules (e.g., `# megalinter-disable-line`)
+- Improve error messages and diagnostic locations
+- Add comprehensive integration tests
+- Create detailed documentation for each rule
+- Implement a plugin system for custom rules
+- Add support for linting specific Git staged files
+- Improve performance for very large files
