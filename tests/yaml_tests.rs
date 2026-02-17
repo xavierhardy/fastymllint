@@ -3,12 +3,10 @@
 use std::fs;
 use tempfile::TempDir;
 
-use megalinter::Language;
 use megalinter::languages::yaml::YamlLanguage;
 use megalinter::{Config, Diagnostic, LintRunner};
 
 mod yaml_rules {
-    use super::*;
     use megalinter::languages::yaml::rules::*;
     use megalinter::rule::{Rule, RuleContext};
 
@@ -16,7 +14,7 @@ mod yaml_rules {
     fn test_trailing_spaces_detection() {
         let content = "key: value   \nother: ok\n";
         let ctx = RuleContext::new(content);
-        let diags = TrailingSpaces.check(&ctx);
+        let diags = TrailingSpaces.check(&ctx, None);
 
         assert_eq!(diags.len(), 1);
         assert_eq!(diags[0].location.line, 1);
@@ -36,7 +34,7 @@ mod yaml_rules {
     fn test_line_length_default() {
         let ctx = RuleContext::new("short: line\n");
         let rule = LineLength::default();
-        let diags = rule.check(&ctx);
+        let diags = rule.check(&ctx, None);
 
         assert!(diags.is_empty());
     }
@@ -47,7 +45,7 @@ mod yaml_rules {
         let content = format!("key: {}\n", long_line);
         let ctx = RuleContext::new(&content);
         let rule = LineLength::default(); // 80 chars
-        let diags = rule.check(&ctx);
+        let diags = rule.check(&ctx, None);
 
         assert_eq!(diags.len(), 1);
         assert!(diags[0].message.contains("too long"));
@@ -57,7 +55,7 @@ mod yaml_rules {
     fn test_newline_at_end_missing() {
         let content = "key: value";
         let ctx = RuleContext::new(content);
-        let diags = NewLineAtEndOfFile.check(&ctx);
+        let diags = NewLineAtEndOfFile.check(&ctx, None);
 
         assert_eq!(diags.len(), 1);
     }
@@ -66,7 +64,7 @@ mod yaml_rules {
     fn test_newline_at_end_present() {
         let content = "key: value\n";
         let ctx = RuleContext::new(content);
-        let diags = NewLineAtEndOfFile.check(&ctx);
+        let diags = NewLineAtEndOfFile.check(&ctx, None);
 
         assert!(diags.is_empty());
     }
@@ -75,7 +73,7 @@ mod yaml_rules {
     fn test_document_start_missing() {
         let content = "key: value\n";
         let ctx = RuleContext::new(content);
-        let diags = DocumentStart.check(&ctx);
+        let diags = DocumentStart.check(&ctx, None);
 
         assert_eq!(diags.len(), 1);
         assert!(diags[0].message.contains("---"));
@@ -85,7 +83,7 @@ mod yaml_rules {
     fn test_document_start_present() {
         let content = "---\nkey: value\n";
         let ctx = RuleContext::new(content);
-        let diags = DocumentStart.check(&ctx);
+        let diags = DocumentStart.check(&ctx, None);
 
         assert!(diags.is_empty());
     }
@@ -94,7 +92,7 @@ mod yaml_rules {
     fn test_key_duplicates_detected() {
         let content = "name: first\nvalue: 1\nname: second\n";
         let ctx = RuleContext::new(content);
-        let diags = KeyDuplicates.check(&ctx);
+        let diags = KeyDuplicates::default().check(&ctx, None);
 
         assert_eq!(diags.len(), 1);
         assert!(diags[0].message.contains("duplication"));
@@ -105,7 +103,7 @@ mod yaml_rules {
     fn test_key_duplicates_nested_ok() {
         let content = "parent:\n  name: child\nname: root\n";
         let ctx = RuleContext::new(content);
-        let diags = KeyDuplicates.check(&ctx);
+        let diags = KeyDuplicates::default().check(&ctx, None);
 
         assert!(
             diags.is_empty(),
@@ -118,7 +116,7 @@ mod yaml_rules {
         let content = "key: value\n\n\n\n\nother: value\n";
         let ctx = RuleContext::new(content);
         let rule = EmptyLines::new(2);
-        let diags = rule.check(&ctx);
+        let diags = rule.check(&ctx, None);
 
         assert!(!diags.is_empty());
         assert!(diags[0].message.contains("blank lines"));
@@ -128,8 +126,8 @@ mod yaml_rules {
     fn test_indentation_consistent() {
         let content = "root:\n  child:\n    grandchild: value\n";
         let ctx = RuleContext::new(content);
-        let rule = Indentation::new(2);
-        let diags = rule.check(&ctx);
+        let rule = Indentation::default();
+        let diags = rule.check(&ctx, None);
 
         assert!(diags.is_empty());
     }
@@ -138,15 +136,72 @@ mod yaml_rules {
     fn test_indentation_inconsistent() {
         let content = "root:\n  child:\n   bad: value\n"; // 3 spaces instead of 4
         let ctx = RuleContext::new(content);
-        let rule = Indentation::new(2);
-        let diags = rule.check(&ctx);
+        let rule = Indentation::default();
+        let diags = rule.check(&ctx, None);
 
         assert!(!diags.is_empty());
+    }
+
+    #[test]
+    fn test_braces_forbid() {
+        let rule = Braces {
+            forbid: true,
+            ..Default::default()
+        };
+        let content = "{key: value}";
+        let ctx = RuleContext::new(content);
+        let diagnostics = rule.check(&ctx, None);
+        assert_eq!(diagnostics.len(), 1);
+        assert_eq!(diagnostics[0].message, "flow mappings are forbidden");
+    }
+
+    #[test]
+    fn test_braces_min_spaces() {
+        let rule = Braces {
+            min_spaces_inside: 1,
+            ..Default::default()
+        };
+        let content = "{key: value}";
+        let ctx = RuleContext::new(content);
+        let diagnostics = rule.check(&ctx, None);
+        assert_eq!(diagnostics.len(), 2); // after { and before }
+        assert_eq!(diagnostics[0].message, "too few spaces inside braces");
+    }
+
+    #[test]
+    fn test_braces_max_spaces() {
+        let rule = Braces {
+            max_spaces_inside: 1,
+            ..Default::default()
+        };
+        let content = "{  key: value  }";
+        let ctx = RuleContext::new(content);
+        let diagnostics = rule.check(&ctx, None);
+        assert_eq!(diagnostics.len(), 2);
+        assert_eq!(diagnostics[0].message, "too many spaces inside braces");
+    }
+
+    #[test]
+    fn test_braces_empty() {
+        let rule = Braces {
+            min_spaces_inside_empty: Some(0),
+            max_spaces_inside_empty: Some(0),
+            ..Default::default()
+        };
+        let content = "{ }";
+        let ctx = RuleContext::new(content);
+        let diagnostics = rule.check(&ctx, None);
+        assert_eq!(diagnostics.len(), 1);
+        assert_eq!(
+            diagnostics[0].message,
+            "too many spaces inside empty braces"
+        );
     }
 }
 
 mod yaml_language {
     use super::*;
+    use megalinter::Language;
 
     #[test]
     fn test_yaml_detection() {
@@ -185,6 +240,7 @@ mod yaml_language {
 
 mod integration {
     use super::*;
+    use megalinter::Language;
 
     #[test]
     fn test_lint_runner() {
@@ -239,13 +295,13 @@ mod integration {
         let temp = TempDir::new().unwrap();
         let file = temp.path().join("valid.yaml");
         let content = r#"---
-name: example
-version: 1.0.0
 metadata:
   author: test
   tags:
     - yaml
     - linter
+name: example
+version: 1.0.0
 "#;
         fs::write(&file, content).unwrap();
 
@@ -270,7 +326,6 @@ metadata:
 }
 
 mod config {
-    use super::*;
     use megalinter::languages::yaml::config::YamllintConfig;
 
     #[test]

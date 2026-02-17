@@ -15,7 +15,11 @@ impl Rule for TrailingSpaces {
         "Forbid trailing spaces at the end of lines"
     }
 
-    fn check(&self, ctx: &RuleContext, _config: Option<&crate::config::RuleConfig>) -> Vec<Diagnostic> {
+    fn check(
+        &self,
+        ctx: &RuleContext,
+        _config: Option<&crate::config::RuleConfig>,
+    ) -> Vec<Diagnostic> {
         ctx.lines
             .iter()
             .enumerate()

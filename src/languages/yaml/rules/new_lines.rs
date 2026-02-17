@@ -1,30 +1,18 @@
 use crate::diagnostic::{Diagnostic, Fix, Location};
 use crate::rule::{Rule, RuleContext};
 
-#[derive(Debug, Clone, Copy, PartialEq, serde::Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, serde::Deserialize, Default)]
 #[serde(rename_all = "kebab-case")]
 pub enum NewLineType {
+    #[default]
     Unix,
     Dos,
     Platform,
 }
 
-impl Default for NewLineType {
-    fn default() -> Self {
-        NewLineType::Unix
-    }
-}
-
+#[derive(Default)]
 pub struct NewLines {
     pub type_: NewLineType,
-}
-
-impl Default for NewLines {
-    fn default() -> Self {
-        Self {
-            type_: NewLineType::default(),
-        }
-    }
 }
 
 impl Rule for NewLines {
@@ -36,13 +24,25 @@ impl Rule for NewLines {
         "Enforce new line type"
     }
 
-    fn check(&self, ctx: &RuleContext, config: Option<&crate::config::RuleConfig>) -> Vec<Diagnostic> {
-        let type_ = config.and_then(|c| c.get_option("type")).unwrap_or(self.type_);
+    fn check(
+        &self,
+        ctx: &RuleContext,
+        config: Option<&crate::config::RuleConfig>,
+    ) -> Vec<Diagnostic> {
+        let type_ = config
+            .and_then(|c| c.get_option("type"))
+            .unwrap_or(self.type_);
 
         let expected_newline = match type_ {
             NewLineType::Unix => "\n",
             NewLineType::Dos => "\r\n",
-            NewLineType::Platform => if cfg!(windows) { "\r\n" } else { "\n" },
+            NewLineType::Platform => {
+                if cfg!(windows) {
+                    "\r\n"
+                } else {
+                    "\n"
+                }
+            }
         };
 
         let mut diagnostics = Vec::new();
@@ -53,15 +53,23 @@ impl Rule for NewLines {
             let actual_newline = if is_crlf { "\r\n" } else { "\n" };
 
             if actual_newline != expected_newline {
-                let (line_num, col) = ctx.lines.iter().enumerate().find_map(|(i, line)| {
-                    let line_start = ctx.content[..newline_pos].rfind('\n').map_or(0, |p| p + 1);
-                    if newline_pos >= line_start && newline_pos < line_start + line.len() + actual_newline.len() {
-                        Some((i + 1, newline_pos - line_start + 1))
-                    } else {
-                        None
-                    }
-                }).unwrap_or((ctx.lines.len(), ctx.lines.last().map_or(0, |l| l.len()) + 1));
-                
+                let (line_num, col) = ctx
+                    .lines
+                    .iter()
+                    .enumerate()
+                    .find_map(|(i, line)| {
+                        let line_start =
+                            ctx.content[..newline_pos].rfind('\n').map_or(0, |p| p + 1);
+                        if newline_pos >= line_start
+                            && newline_pos < line_start + line.len() + actual_newline.len()
+                        {
+                            Some((i + 1, newline_pos - line_start + 1))
+                        } else {
+                            None
+                        }
+                    })
+                    .unwrap_or((ctx.lines.len(), ctx.lines.last().map_or(0, |l| l.len()) + 1));
+
                 let diag = Diagnostic::error(
                     self.name(),
                     "wrong new line character",

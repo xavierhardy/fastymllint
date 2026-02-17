@@ -1,6 +1,7 @@
 use crate::diagnostic::{Diagnostic, Fix, Location};
 use crate::rule::{Rule, RuleContext};
 
+#[derive(Default)]
 pub struct Braces {
     pub min_spaces_inside: usize,
     pub max_spaces_inside: usize,
@@ -8,19 +9,6 @@ pub struct Braces {
     pub max_spaces_inside_empty: Option<usize>,
     pub forbid: bool,
     pub forbid_non_empty: bool,
-}
-
-impl Default for Braces {
-    fn default() -> Self {
-        Self {
-            min_spaces_inside: 0,
-            max_spaces_inside: 0,
-            min_spaces_inside_empty: None,
-            max_spaces_inside_empty: None,
-            forbid: false,
-            forbid_non_empty: false,
-        }
-    }
 }
 
 impl Rule for Braces {
@@ -32,13 +20,29 @@ impl Rule for Braces {
         "Enforce consistent spacing inside braces"
     }
 
-    fn check(&self, ctx: &RuleContext, config: Option<&crate::config::RuleConfig>) -> Vec<Diagnostic> {
-        let min_spaces_inside = config.and_then(|c| c.get_option("min-spaces-inside")).unwrap_or(self.min_spaces_inside);
-        let max_spaces_inside = config.and_then(|c| c.get_option("max-spaces-inside")).unwrap_or(self.max_spaces_inside);
-        let min_spaces_inside_empty = config.and_then(|c| c.get_option("min-spaces-inside-empty")).or(self.min_spaces_inside_empty);
-        let max_spaces_inside_empty = config.and_then(|c| c.get_option("max-spaces-inside-empty")).or(self.max_spaces_inside_empty);
-        let forbid = config.and_then(|c| c.get_option("forbid")).unwrap_or(self.forbid);
-        let forbid_non_empty = config.and_then(|c| c.get_option("forbid-non-empty")).unwrap_or(self.forbid_non_empty);
+    fn check(
+        &self,
+        ctx: &RuleContext,
+        config: Option<&crate::config::RuleConfig>,
+    ) -> Vec<Diagnostic> {
+        let min_spaces_inside = config
+            .and_then(|c| c.get_option("min-spaces-inside"))
+            .unwrap_or(self.min_spaces_inside);
+        let max_spaces_inside = config
+            .and_then(|c| c.get_option("max-spaces-inside"))
+            .unwrap_or(self.max_spaces_inside);
+        let min_spaces_inside_empty = config
+            .and_then(|c| c.get_option("min-spaces-inside-empty"))
+            .or(self.min_spaces_inside_empty);
+        let max_spaces_inside_empty = config
+            .and_then(|c| c.get_option("max-spaces-inside-empty"))
+            .or(self.max_spaces_inside_empty);
+        let forbid = config
+            .and_then(|c| c.get_option("forbid"))
+            .unwrap_or(self.forbid);
+        let forbid_non_empty = config
+            .and_then(|c| c.get_option("forbid-non-empty"))
+            .unwrap_or(self.forbid_non_empty);
 
         let mut diagnostics = Vec::new();
 
@@ -47,7 +51,7 @@ impl Rule for Braces {
             let mut in_quote = false;
             let mut quote_char = ' ';
             let chars: Vec<(usize, char)> = line.char_indices().collect();
-            
+
             let mut i = 0;
             while i < chars.len() {
                 let (pos, c) = chars[i];
@@ -80,8 +84,10 @@ impl Rule for Braces {
                                 if forbid_non_empty {
                                     // OK, only non-empty forbidden
                                 } else {
-                                    let min_empty = min_spaces_inside_empty.unwrap_or(min_spaces_inside);
-                                    let max_empty = max_spaces_inside_empty.unwrap_or(max_spaces_inside);
+                                    let min_empty =
+                                        min_spaces_inside_empty.unwrap_or(min_spaces_inside);
+                                    let max_empty =
+                                        max_spaces_inside_empty.unwrap_or(max_spaces_inside);
 
                                     if spaces_after < min_empty {
                                         let diag = Diagnostic::error(
@@ -103,7 +109,10 @@ impl Rule for Braces {
                                         diagnostics.push(diag.with_fix(Fix::delete(
                                             "remove extra spaces inside empty braces",
                                             Location::new(line_num, pos + 2),
-                                            Location::new(line_num, pos + 2 + (spaces_after - max_empty)),
+                                            Location::new(
+                                                line_num,
+                                                pos + 2 + (spaces_after - max_empty),
+                                            ),
                                         )));
                                     }
                                 }
@@ -138,7 +147,10 @@ impl Rule for Braces {
                                     diagnostics.push(diag.with_fix(Fix::delete(
                                         "remove extra spaces inside braces",
                                         Location::new(line_num, pos + 2),
-                                        Location::new(line_num, pos + 2 + (spaces_after - max_spaces_inside)),
+                                        Location::new(
+                                            line_num,
+                                            pos + 2 + (spaces_after - max_spaces_inside),
+                                        ),
                                     )));
                                 }
                             }
@@ -150,14 +162,14 @@ impl Rule for Braces {
                         // Let's handle it here for simplicity
                         let mut j = pos;
                         let mut spaces_before = 0;
-                        while j > 0 && line.as_bytes()[j-1] == b' ' {
+                        while j > 0 && line.as_bytes()[j - 1] == b' ' {
                             spaces_before += 1;
                             j -= 1;
                         }
-                        
+
                         // Check if it's an empty {} (already handled)
                         let mut is_empty = false;
-                        if j > 0 && line.as_bytes()[j-1] == b'{' {
+                        if j > 0 && line.as_bytes()[j - 1] == b'{' {
                             is_empty = true;
                         }
 
@@ -177,11 +189,17 @@ impl Rule for Braces {
                                 let diag = Diagnostic::error(
                                     self.name(),
                                     "too many spaces inside braces",
-                                    Location::new(line_num, pos + 1 - (spaces_before - max_spaces_inside)),
+                                    Location::new(
+                                        line_num,
+                                        pos + 1 - (spaces_before - max_spaces_inside),
+                                    ),
                                 );
                                 diagnostics.push(diag.with_fix(Fix::delete(
                                     "remove extra spaces inside braces",
-                                    Location::new(line_num, pos + 1 - (spaces_before - max_spaces_inside)),
+                                    Location::new(
+                                        line_num,
+                                        pos + 1 - (spaces_before - max_spaces_inside),
+                                    ),
                                     Location::new(line_num, pos + 1),
                                 )));
                             }
@@ -203,8 +221,6 @@ impl Rule for Braces {
 }
 
 #[cfg(test)]
-
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -231,7 +247,51 @@ mod tests {
         let content = "{key: value}";
         let ctx = RuleContext::new(content);
         let diagnostics = rule.check(&ctx, None);
-        assert_eq!(diagnostics.len(), 1);
+        // Expect 2 diagnostics: one after '{' and one before '}'
+        assert_eq!(diagnostics.len(), 2);
         assert_eq!(diagnostics[0].message, "too few spaces inside braces");
+    }
+
+    #[test]
+    fn test_braces_max_spaces() {
+        let rule = Braces {
+            max_spaces_inside: 0,
+            ..Default::default()
+        };
+        let content = "{  key: value  }";
+        let ctx = RuleContext::new(content);
+        let diagnostics = rule.check(&ctx, None);
+        // Expect 2 diagnostics: one after '{' and one before '}'
+        assert_eq!(diagnostics.len(), 2);
+        assert_eq!(diagnostics[0].message, "too many spaces inside braces");
+    }
+
+    #[test]
+    fn test_braces_empty_min_spaces() {
+        let rule = Braces {
+            min_spaces_inside_empty: Some(1),
+            ..Default::default()
+        };
+        let content = "{}";
+        let ctx = RuleContext::new(content);
+        let diagnostics = rule.check(&ctx, None);
+        assert_eq!(diagnostics.len(), 1);
+        assert_eq!(diagnostics[0].message, "too few spaces inside empty braces");
+    }
+
+    #[test]
+    fn test_braces_empty_max_spaces() {
+        let rule = Braces {
+            max_spaces_inside_empty: Some(0),
+            ..Default::default()
+        };
+        let content = "{ }";
+        let ctx = RuleContext::new(content);
+        let diagnostics = rule.check(&ctx, None);
+        assert_eq!(diagnostics.len(), 1);
+        assert_eq!(
+            diagnostics[0].message,
+            "too many spaces inside empty braces"
+        );
     }
 }

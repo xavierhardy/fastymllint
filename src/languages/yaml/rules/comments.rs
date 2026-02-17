@@ -26,10 +26,20 @@ impl Rule for Comments {
         "Enforce comment formatting"
     }
 
-    fn check(&self, ctx: &RuleContext, config: Option<&crate::config::RuleConfig>) -> Vec<Diagnostic> {
-        let require_starting_space = config.and_then(|c| c.get_option("require-starting-space")).unwrap_or(self.require_starting_space);
-        let ignore_shebangs = config.and_then(|c| c.get_option("ignore-shebangs")).unwrap_or(self.ignore_shebangs);
-        let min_spaces_from_content = config.and_then(|c| c.get_option("min-spaces-from-content")).unwrap_or(self.min_spaces_from_content);
+    fn check(
+        &self,
+        ctx: &RuleContext,
+        config: Option<&crate::config::RuleConfig>,
+    ) -> Vec<Diagnostic> {
+        let require_starting_space = config
+            .and_then(|c| c.get_option("require-starting-space"))
+            .unwrap_or(self.require_starting_space);
+        let ignore_shebangs = config
+            .and_then(|c| c.get_option("ignore-shebangs"))
+            .unwrap_or(self.ignore_shebangs);
+        let min_spaces_from_content = config
+            .and_then(|c| c.get_option("min-spaces-from-content"))
+            .unwrap_or(self.min_spaces_from_content);
 
         let mut diagnostics = Vec::new();
 
@@ -42,27 +52,28 @@ impl Rule for Comments {
                 }
 
                 // Check for space after comment marker
-                if require_starting_space {
-                    if let Some(next_char) = line[comment_start + 1..].chars().next() {
-                        if next_char != ' ' && !next_char.is_whitespace() {
-                            let diag = Diagnostic::error(
-                                self.name(),
-                                "no space after comment's #",
-                                Location::new(line_num, comment_start + 1),
-                            );
-                            diagnostics.push(diag.with_fix(Fix::insert(
-                                "add space after #",
-                                " ",
-                                Location::new(line_num, comment_start + 2),
-                            )));
-                        }
-                    }
+                if require_starting_space
+                    && let Some(next_char) = line[comment_start + 1..].chars().next()
+                    && next_char != ' '
+                    && !next_char.is_whitespace()
+                {
+                    let diag = Diagnostic::error(
+                        self.name(),
+                        "no space after comment's #",
+                        Location::new(line_num, comment_start + 1),
+                    );
+                    diagnostics.push(diag.with_fix(Fix::insert(
+                        "add space after #",
+                        " ",
+                        Location::new(line_num, comment_start + 2),
+                    )));
                 }
 
                 // Check for spaces before inline comments
                 if comment_start > 0 {
                     let before_comment = &line[..comment_start];
-                    if !before_comment.trim().is_empty() { // It's an inline comment
+                    if !before_comment.trim().is_empty() {
+                        // It's an inline comment
                         let mut spaces = 0;
                         for c in before_comment.chars().rev() {
                             if c == ' ' {

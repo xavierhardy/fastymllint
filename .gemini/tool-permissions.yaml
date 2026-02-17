@@ -1,0 +1,116 @@
+# Gemini CLI Tool Permissions for transpire-ai project (Restricted)
+
+# This configuration file defines a RESTRICTED set of permissions for
+# tools used by the Gemini CLI. It prevents modification of the .gemini
+# and .git configuration directories and limits write access to specific project directories and files.
+
+version: 1
+
+tools:
+  # Filesystem read permissions
+  read_file:
+    allow: ["**"]
+  list_directory:
+    allow: ["**"]
+  grep_search:
+    allow: ["**"]
+  glob:
+    allow: ["**"]
+
+  # Filesystem write permissions
+  # Explicitly allow writing to specific project directories and files, and deny elsewhere.
+  write_file:
+    allow: ["lib/**", "src/**", "test/**", "scripts/**", "README.md", "TASKS.md", "docs/DONE_TASKS.md"]
+    deny: [".gemini/**", ".git/**", "__pycache__", "*egg-info*", "target"]
+  replace:
+    allow: ["lib/**", "src/**", "test/**", "scripts/**", "README.md", "TASKS.md", "docs/DONE_TASKS.md"]
+    deny: [".gemini/**", ".git/**", "__pycache__", "*egg-info*", "target"]
+
+  # Shell command execution permissions
+  run_shell_command:
+    deny:
+      - command: "git"
+        pattern: "rebase .*" # Deny 'git rebase' with any arguments
+      - command: "sed"
+        pattern: ".*\\.gemini/.*" # Deny 'sed' if any argument contains '.gemini/'
+      - command: "cd"
+        pattern: ".*\\.gemini.*" # Deny 'cd' if any argument contains '.gemini'
+      - command: "chmod"
+        pattern: ".*\\.gemini/.*" # Deny 'chmod' if any argument contains '.gemini/'
+      - command: "rm"
+        pattern: ".*-rf .*" # Deny recursive delete operations
+      - command: "curl"
+        pattern: ".*" # Deny all curl requests
+      - command: "wget"
+        pattern: ".*" # Deny all wget requests
+      - command: "nc"
+        pattern: ".*" # Deny all netcat usage
+      # Additional suggested denials:
+      - command: "git"
+        pattern: "clean -fdx .*" # Deny git clean with -fdx
+      - command: "git"
+        pattern: "reset --hard .*" # Deny git reset --hard
+      - command: "eval"
+        pattern: ".*" # Deny eval command
+      - command: "source"
+        pattern: ".*" # Deny source command
+      # New denials for .git folder
+      - command: "sed"
+        pattern: ".*\\.git/.*" # Deny 'sed' if any argument contains '.git/'
+      - command: "chmod"
+        pattern: ".*\\.git/.*" # Deny 'chmod' if any argument contains '.git/'
+      - command: "cd"
+        pattern: ".*\\.git.*" # Deny 'cd' if any argument contains '.git'
+      # New denials for .gemini and .git with awk
+      - command: "awk"
+        pattern: ".*\\.gemini/.*" # Deny awk if any argument contains '.gemini/'
+      - command: "awk"
+        pattern: ".*\\.git/.*" # Deny awk if any argument contains '.git/'
+      # New denial for kill command
+      - command: "kill"
+        pattern: ".*" # Deny all kill commands
+    allow:
+      # Allow common, non-destructive commands.
+      - command: "ls"
+        pattern: ".*"
+      - command: "grep"
+        pattern: ".*"
+      - command: "mkdir"
+        pattern: ".*"
+      - command: "sed"
+        pattern: ".*" # Allow 'sed' with any arguments by default
+      # Allow awk and wc
+      - command: "awk"
+        pattern: ".*" # Allow awk with any arguments by default
+      - command: "wc"
+        pattern: ".*" # Allow wc with any arguments by default
+      # Newly allowed commands
+      - command: "find"
+        pattern: ".*"
+      - command: "cat"
+        pattern: ".*"
+      - command: "head"
+        pattern: ".*"
+      - command: "tail"
+        pattern: ".*"
+      - command: "ps"
+        pattern: ".*"
+      - command: "jq"
+        pattern: ".*"
+      # Allowed Git commands
+      - command: "git"
+        pattern: "add .*"
+      - command: "git"
+        pattern: "rm .*"
+      - command: "git"
+        pattern: "commit .*"
+      - command: "git"
+        pattern: "push .*"
+      - command: "git"
+        pattern: "pull .*"
+      - command: "git"
+        pattern: "branch .*"
+      - command: "git"
+        pattern: "merge .*"
+      # Allow execution of any shell script within the project.
+      - command: "**/*.sh"

@@ -46,10 +46,18 @@ impl Rule for EmptyLines {
         "Limit the number of consecutive empty lines"
     }
 
-    fn check(&self, ctx: &RuleContext, config: Option<&crate::config::RuleConfig>) -> Vec<Diagnostic> {
+    fn check(
+        &self,
+        ctx: &RuleContext,
+        config: Option<&crate::config::RuleConfig>,
+    ) -> Vec<Diagnostic> {
         let max = config.and_then(|c| c.get_option("max")).unwrap_or(self.max);
-        let max_start = config.and_then(|c| c.get_option("max-start")).unwrap_or(self.max_start);
-        let max_end = config.and_then(|c| c.get_option("max-end")).unwrap_or(self.max_end);
+        let max_start = config
+            .and_then(|c| c.get_option("max-start"))
+            .unwrap_or(self.max_start);
+        let max_end = config
+            .and_then(|c| c.get_option("max-end"))
+            .unwrap_or(self.max_end);
 
         let mut diagnostics = Vec::new();
         let mut consecutive_empty = 0;
@@ -63,15 +71,18 @@ impl Rule for EmptyLines {
 
                 // Check start of file
                 if in_start && consecutive_empty > max_start {
-                    diagnostics.push(Diagnostic::warning(
-                        self.name(),
-                        format!("too many blank lines at the start ({})", consecutive_empty),
-                        Location::new(line_num, 1),
-                    ).with_fix(Fix::delete(
-                        "remove blank line at the start",
-                        Location::new(line_num, 1),
-                        Location::new(line_num + 1, 1),
-                    )));
+                    diagnostics.push(
+                        Diagnostic::warning(
+                            self.name(),
+                            format!("too many blank lines at the start ({})", consecutive_empty),
+                            Location::new(line_num, 1),
+                        )
+                        .with_fix(Fix::delete(
+                            "remove blank line at the start",
+                            Location::new(line_num, 1),
+                            Location::new(line_num + 1, 1),
+                        )),
+                    );
                 }
             } else {
                 // Check consecutive empty lines in the middle
@@ -79,18 +90,18 @@ impl Rule for EmptyLines {
                     // Report for each extra line to allow fixing one by one
                     for i in (max + 1)..=consecutive_empty {
                         let report_line = line_num - (consecutive_empty - i + 1);
-                        diagnostics.push(Diagnostic::warning(
-                            self.name(),
-                            format!(
-                                "too many blank lines ({} > {})",
-                                consecutive_empty, max
-                            ),
-                            Location::new(report_line, 1),
-                        ).with_fix(Fix::delete(
-                            "remove extra blank line",
-                            Location::new(report_line, 1),
-                            Location::new(report_line + 1, 1),
-                        )));
+                        diagnostics.push(
+                            Diagnostic::warning(
+                                self.name(),
+                                format!("too many blank lines ({} > {})", consecutive_empty, max),
+                                Location::new(report_line, 1),
+                            )
+                            .with_fix(Fix::delete(
+                                "remove extra blank line",
+                                Location::new(report_line, 1),
+                                Location::new(report_line + 1, 1),
+                            )),
+                        );
                     }
                 }
 
@@ -103,16 +114,19 @@ impl Rule for EmptyLines {
         if consecutive_empty > max_end {
             for i in (max_end + 1)..=consecutive_empty {
                 let report_line = ctx.line_count() - (consecutive_empty - i);
-                diagnostics.push(Diagnostic::warning(
-                    self.name(),
-                    format!("too many blank lines at the end ({})", consecutive_empty),
-                    Location::new(report_line, 1),
-                ).with_fix(Fix::delete(
-                    "remove blank line at the end",
-                    Location::new(report_line, 1),
-                    // If it's the very last line of the file, we might not have a next line
-                    Location::new(report_line + 1, 1),
-                )));
+                diagnostics.push(
+                    Diagnostic::warning(
+                        self.name(),
+                        format!("too many blank lines at the end ({})", consecutive_empty),
+                        Location::new(report_line, 1),
+                    )
+                    .with_fix(Fix::delete(
+                        "remove blank line at the end",
+                        Location::new(report_line, 1),
+                        // If it's the very last line of the file, we might not have a next line
+                        Location::new(report_line + 1, 1),
+                    )),
+                );
             }
         }
 

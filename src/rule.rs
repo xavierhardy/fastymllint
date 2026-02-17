@@ -1,8 +1,8 @@
 //! Rule trait for extensible lint rules
 
 use crate::Diagnostic;
-use crate::diagnostic::Location;
 use crate::config::RuleConfig;
+use crate::diagnostic::Location;
 
 /// Context provided to rules for checking content
 #[derive(Debug)]
@@ -55,7 +55,8 @@ impl<'a> RuleContext<'a> {
 
     /// Get the absolute byte offset for a Location
     pub fn offset(&self, loc: Location) -> Option<usize> {
-        self.line_range(loc.line).map(|(start, _)| start + loc.column - 1)
+        self.line_range(loc.line)
+            .map(|(start, _)| start + loc.column - 1)
     }
 
     /// Get the total number of lines

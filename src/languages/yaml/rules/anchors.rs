@@ -28,7 +28,11 @@ impl Rule for Anchors {
         "Check anchors and aliases"
     }
 
-    fn check(&self, ctx: &RuleContext, config: Option<&crate::config::RuleConfig>) -> Vec<Diagnostic> {
+    fn check(
+        &self,
+        ctx: &RuleContext,
+        config: Option<&crate::config::RuleConfig>,
+    ) -> Vec<Diagnostic> {
         let forbid_undeclared_aliases = config
             .and_then(|c| c.get_option("forbid-undeclared-aliases"))
             .unwrap_or(self.forbid_undeclared_aliases);
@@ -73,16 +77,19 @@ impl Rule for Anchors {
                         if end > start {
                             let name = line[start..end].to_string();
                             let loc = Location::new(line_num, i + 1);
-                            if anchors.contains_key(&name) {
-                                if forbid_duplicated_anchors {
-                                    diagnostics.push(Diagnostic::error(
-                                        self.name(),
-                                        format!("found duplicated anchor \"{}\"", name),
-                                        loc,
-                                    ));
+                            match anchors.entry(name) {
+                                std::collections::hash_map::Entry::Occupied(entry) => {
+                                    if forbid_duplicated_anchors {
+                                        diagnostics.push(Diagnostic::error(
+                                            self.name(),
+                                            format!("found duplicated anchor \"{}\"", entry.key()),
+                                            loc,
+                                        ));
+                                    }
                                 }
-                            } else {
-                                anchors.insert(name, loc);
+                                std::collections::hash_map::Entry::Vacant(entry) => {
+                                    entry.insert(loc);
+                                }
                             }
                         }
                     }

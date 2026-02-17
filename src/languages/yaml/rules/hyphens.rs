@@ -22,8 +22,14 @@ impl Rule for Hyphens {
         "Enforce spacing after hyphens"
     }
 
-    fn check(&self, ctx: &RuleContext, config: Option<&crate::config::RuleConfig>) -> Vec<Diagnostic> {
-        let max_spaces_after = config.and_then(|c| c.get_int("max-spaces-after")).unwrap_or(self.max_spaces_after);
+    fn check(
+        &self,
+        ctx: &RuleContext,
+        config: Option<&crate::config::RuleConfig>,
+    ) -> Vec<Diagnostic> {
+        let max_spaces_after = config
+            .and_then(|c| c.get_int("max-spaces-after"))
+            .unwrap_or(self.max_spaces_after);
 
         let mut diagnostics = Vec::new();
 

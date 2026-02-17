@@ -13,7 +13,11 @@ impl Rule for CommentsIndentation {
         "Enforce comment indentation consistency"
     }
 
-    fn check(&self, ctx: &RuleContext, _config: Option<&crate::config::RuleConfig>) -> Vec<Diagnostic> {
+    fn check(
+        &self,
+        ctx: &RuleContext,
+        _config: Option<&crate::config::RuleConfig>,
+    ) -> Vec<Diagnostic> {
         let mut diagnostics = Vec::new();
 
         for (i, line) in ctx.lines.iter().enumerate() {
@@ -46,21 +50,21 @@ impl Rule for CommentsIndentation {
                     }
                 }
 
-                if let Some(target) = target_indent {
-                    if indent != target {
-                        let diag = Diagnostic::error(
-                            self.name(),
-                            "comment not indented like content",
-                            Location::new(line_num, 1),
-                        );
-                        let new_line = format!("{}{}", " ".repeat(target), trimmed);
-                        diagnostics.push(diag.with_fix(Fix::new(
-                            "re-indent comment",
-                            new_line,
-                            Location::new(line_num, 1),
-                            Location::new(line_num, line.len() + 1),
-                        )));
-                    }
+                if let Some(target) = target_indent
+                    && indent != target
+                {
+                    let diag = Diagnostic::error(
+                        self.name(),
+                        "comment not indented like content",
+                        Location::new(line_num, 1),
+                    );
+                    let new_line = format!("{}{}", " ".repeat(target), trimmed);
+                    diagnostics.push(diag.with_fix(Fix::new(
+                        "re-indent comment",
+                        new_line,
+                        Location::new(line_num, 1),
+                        Location::new(line_num, line.len() + 1),
+                    )));
                 }
             }
         }

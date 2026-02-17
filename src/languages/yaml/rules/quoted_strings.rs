@@ -1,19 +1,14 @@
 use crate::diagnostic::{Diagnostic, Fix, Location};
 use crate::rule::{Rule, RuleContext};
 
-#[derive(Debug, Clone, Copy, PartialEq, serde::Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, serde::Deserialize, Default)]
 #[serde(rename_all = "kebab-case")]
 pub enum QuoteType {
     Single,
     Double,
     Consistent,
+    #[default]
     Any,
-}
-
-impl Default for QuoteType {
-    fn default() -> Self {
-        QuoteType::Any
-    }
 }
 
 pub struct QuotedStrings {
@@ -47,13 +42,30 @@ impl Rule for QuotedStrings {
         "Enforce string quoting rules"
     }
 
-    fn check(&self, ctx: &RuleContext, config: Option<&crate::config::RuleConfig>) -> Vec<Diagnostic> {
-        let quote_type = config.and_then(|c| c.get_option("quote-type")).unwrap_or(self.quote_type);
-        let required = config.and_then(|c| c.get_string("required")).unwrap_or_else(|| self.required.clone());
-        let extra_required = config.and_then(|c| c.get_option("extra-required")).unwrap_or_else(|| self.extra_required.clone());
-        let extra_allowed = config.and_then(|c| c.get_option("extra-allowed")).unwrap_or_else(|| self.extra_allowed.clone());
-        let allow_quoted_quotes = config.and_then(|c| c.get_option("allow-quoted-quotes")).unwrap_or(self.allow_quoted_quotes);
-        let check_keys = config.and_then(|c| c.get_option("check-keys")).unwrap_or(self.check_keys);
+    #[allow(unused_variables)]
+    fn check(
+        &self,
+        ctx: &RuleContext,
+        config: Option<&crate::config::RuleConfig>,
+    ) -> Vec<Diagnostic> {
+        let quote_type = config
+            .and_then(|c| c.get_option("quote-type"))
+            .unwrap_or(self.quote_type);
+        let required = config
+            .and_then(|c| c.get_string("required"))
+            .unwrap_or_else(|| self.required.clone());
+        let extra_required = config
+            .and_then(|c| c.get_option("extra-required"))
+            .unwrap_or_else(|| self.extra_required.clone());
+        let extra_allowed = config
+            .and_then(|c| c.get_option("extra-allowed"))
+            .unwrap_or_else(|| self.extra_allowed.clone());
+        let allow_quoted_quotes = config
+            .and_then(|c| c.get_option("allow-quoted-quotes"))
+            .unwrap_or(self.allow_quoted_quotes);
+        let check_keys = config
+            .and_then(|c| c.get_option("check-keys"))
+            .unwrap_or(self.check_keys);
 
         let mut diagnostics = Vec::new();
 
@@ -82,33 +94,56 @@ impl Rule for QuotedStrings {
                 let is_quoted = starts_with_quote && ends_with_quote;
 
                 if required == "true" && !is_quoted {
-                    return Some(Diagnostic::error(
-                        self.name(),
-                        "string must be quoted",
-                        Location::new(line_num, line.find(s).unwrap_or(0) + 1),
-                    ).with_fix(Fix::new("add quotes", format!("'{}'", s), 
-                        Location::new(line_num, line.find(s).unwrap_or(0) + 1),
-                        Location::new(line_num, line.find(s).unwrap_or(0) + 1 + s.len())
-                    )));
+                    return Some(
+                        Diagnostic::error(
+                            self.name(),
+                            "string must be quoted",
+                            Location::new(line_num, line.find(s).unwrap_or(0) + 1),
+                        )
+                        .with_fix(Fix::new(
+                            "add quotes",
+                            format!("'{}'", s),
+                            Location::new(line_num, line.find(s).unwrap_or(0) + 1),
+                            Location::new(line_num, line.find(s).unwrap_or(0) + 1 + s.len()),
+                        )),
+                    );
                 } else if required == "false" && is_quoted {
-                     return Some(Diagnostic::error(
-                        self.name(),
-                        "string must not be quoted",
-                        Location::new(line_num, line.find(s).unwrap_or(0) + 1),
-                    ).with_fix(Fix::new("remove quotes", s[1..s.len()-1].to_string(),
-                        Location::new(line_num, line.find(s).unwrap_or(0) + 1),
-                        Location::new(line_num, line.find(s).unwrap_or(0) + 1 + s.len())
-                    )));
-                } else if required == "only-when-needed" && !is_quoted && (s.contains(' ') || s.contains(':') || s.contains('[') || s.contains('{') || s.contains(']') || s.contains('}')) {
+                    return Some(
+                        Diagnostic::error(
+                            self.name(),
+                            "string must not be quoted",
+                            Location::new(line_num, line.find(s).unwrap_or(0) + 1),
+                        )
+                        .with_fix(Fix::new(
+                            "remove quotes",
+                            s[1..s.len() - 1].to_string(),
+                            Location::new(line_num, line.find(s).unwrap_or(0) + 1),
+                            Location::new(line_num, line.find(s).unwrap_or(0) + 1 + s.len()),
+                        )),
+                    );
+                } else if required == "only-when-needed"
+                    && !is_quoted
+                    && (s.contains(' ')
+                        || s.contains(':')
+                        || s.contains('[')
+                        || s.contains('{')
+                        || s.contains(']')
+                        || s.contains('}'))
+                {
                     // This is a very simplistic "when needed" check
-                     return Some(Diagnostic::warning(
-                        self.name(),
-                        "string might need quotes",
-                        Location::new(line_num, line.find(s).unwrap_or(0) + 1),
-                    ).with_fix(Fix::new("add quotes", format!("'{}'", s),
-                        Location::new(line_num, line.find(s).unwrap_or(0) + 1),
-                        Location::new(line_num, line.find(s).unwrap_or(0) + 1 + s.len())
-                    )));
+                    return Some(
+                        Diagnostic::warning(
+                            self.name(),
+                            "string might need quotes",
+                            Location::new(line_num, line.find(s).unwrap_or(0) + 1),
+                        )
+                        .with_fix(Fix::new(
+                            "add quotes",
+                            format!("'{}'", s),
+                            Location::new(line_num, line.find(s).unwrap_or(0) + 1),
+                            Location::new(line_num, line.find(s).unwrap_or(0) + 1 + s.len()),
+                        )),
+                    );
                 }
 
                 // Check specific quote type if quoted
@@ -117,26 +152,42 @@ impl Rule for QuotedStrings {
                     match quote_type {
                         QuoteType::Single => {
                             if current_quote != '\'' {
-                                return Some(Diagnostic::error(
-                                    self.name(),
-                                    "string must use single quotes",
-                                    Location::new(line_num, line.find(s).unwrap_or(0) + 1),
-                                ).with_fix(Fix::new("change to single quotes", format!("'{}'", &s[1..s.len()-1]),
-                                    Location::new(line_num, line.find(s).unwrap_or(0) + 1),
-                                    Location::new(line_num, line.find(s).unwrap_or(0) + 1 + s.len())
-                                )));
+                                return Some(
+                                    Diagnostic::error(
+                                        self.name(),
+                                        "string must use single quotes",
+                                        Location::new(line_num, line.find(s).unwrap_or(0) + 1),
+                                    )
+                                    .with_fix(Fix::new(
+                                        "change to single quotes",
+                                        format!("'{}'", &s[1..s.len() - 1]),
+                                        Location::new(line_num, line.find(s).unwrap_or(0) + 1),
+                                        Location::new(
+                                            line_num,
+                                            line.find(s).unwrap_or(0) + 1 + s.len(),
+                                        ),
+                                    )),
+                                );
                             }
                         }
                         QuoteType::Double => {
                             if current_quote != '"' {
-                                return Some(Diagnostic::error(
-                                    self.name(),
-                                    "string must use double quotes",
-                                    Location::new(line_num, line.find(s).unwrap_or(0) + 1),
-                                ).with_fix(Fix::new("change to double quotes", format!("\"{}\"", &s[1..s.len()-1]),
-                                    Location::new(line_num, line.find(s).unwrap_or(0) + 1),
-                                    Location::new(line_num, line.find(s).unwrap_or(0) + 1 + s.len())
-                                )));
+                                return Some(
+                                    Diagnostic::error(
+                                        self.name(),
+                                        "string must use double quotes",
+                                        Location::new(line_num, line.find(s).unwrap_or(0) + 1),
+                                    )
+                                    .with_fix(Fix::new(
+                                        "change to double quotes",
+                                        format!("\"{}\"", &s[1..s.len() - 1]),
+                                        Location::new(line_num, line.find(s).unwrap_or(0) + 1),
+                                        Location::new(
+                                            line_num,
+                                            line.find(s).unwrap_or(0) + 1 + s.len(),
+                                        ),
+                                    )),
+                                );
                             }
                         }
                         QuoteType::Consistent => {
@@ -145,7 +196,10 @@ impl Rule for QuotedStrings {
                             } else if detected_quote_type != Some(current_quote) {
                                 return Some(Diagnostic::error(
                                     self.name(),
-                                    format!("inconsistent quote type: expected '{}'", detected_quote_type.unwrap()),
+                                    format!(
+                                        "inconsistent quote type: expected '{}'",
+                                        detected_quote_type.unwrap()
+                                    ),
                                     Location::new(line_num, line.find(s).unwrap_or(0) + 1),
                                 ));
                             }
@@ -157,10 +211,8 @@ impl Rule for QuotedStrings {
                 None
             };
 
-            if check_keys {
-                if let Some(diag) = check_string(key_part, true) {
-                    diagnostics.push(diag);
-                }
+            if check_keys && let Some(diag) = check_string(key_part, true) {
+                diagnostics.push(diag);
             }
             if let Some(diag) = check_string(value_part, false) {
                 diagnostics.push(diag);

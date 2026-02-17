@@ -16,12 +16,18 @@ impl Rule for KeyOrdering {
         "Enforce alphabetical ordering of keys"
     }
 
-    fn check(&self, ctx: &RuleContext, config: Option<&crate::config::RuleConfig>) -> Vec<Diagnostic> {
-        let ignored_keys = config.and_then(|c| c.get_option("ignored-keys")).unwrap_or_else(|| self.ignored_keys.clone());
+    fn check(
+        &self,
+        ctx: &RuleContext,
+        config: Option<&crate::config::RuleConfig>,
+    ) -> Vec<Diagnostic> {
+        let ignored_keys = config
+            .and_then(|c| c.get_option("ignored-keys"))
+            .unwrap_or_else(|| self.ignored_keys.clone());
 
         let mut diagnostics = Vec::new();
         let mut key_stacks: HashMap<usize, Vec<String>> = HashMap::new();
-        let mut prev_indent = 0;
+        let _prev_indent = 0; // Marked as unused, will remove mut
 
         for (i, line) in ctx.lines.iter().enumerate() {
             let line_num = i + 1;
@@ -31,34 +37,40 @@ impl Rule for KeyOrdering {
             if trimmed.is_empty() || trimmed.starts_with('#') {
                 continue;
             }
-            
+
             if let Some(colon_pos) = trimmed.find(':') {
+                // Ensure it's a key: value pair and not part of a block sequence or similar
+                // A simple heuristic for now: check if it's not a list item
+                if trimmed.starts_with('-') {
+                    continue;
+                }
+
                 let key = trimmed[..colon_pos].trim().to_string();
 
                 if ignored_keys.contains(&key) {
                     continue;
                 }
 
-                if current_indent < prev_indent {
-                    key_stacks.retain(|&indent, _| indent <= current_indent);
-                }
-                
-                let keys = key_stacks.entry(current_indent).or_default();
+                // If indentation decreased, remove keys from deeper levels
+                key_stacks.retain(|&indent, _| indent <= current_indent);
 
-                if let Some(last_key) = keys.last() {
-                    if &key < last_key {
-                        diagnostics.push(Diagnostic::error(
-                            self.name(),
-                            format!("key '{}' is not in alphabetical order", key),
-                            crate::diagnostic::Location::new(line_num, current_indent + 1),
-                        ));
-                    }
+                let keys_at_current_level = key_stacks.entry(current_indent).or_default();
+
+                if let Some(last_key) = keys_at_current_level.last()
+                    && key < *last_key
+                {
+                    diagnostics.push(Diagnostic::error(
+                        self.name(),
+                        format!(
+                            "key '{}' is not in alphabetical order (comes after '{}')",
+                            key, last_key
+                        ),
+                        crate::diagnostic::Location::new(line_num, current_indent + 1),
+                    ));
                 }
-                keys.push(key);
+                keys_at_current_level.push(key);
             }
-            prev_indent = current_indent;
         }
-
         diagnostics
     }
 

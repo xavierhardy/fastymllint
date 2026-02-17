@@ -24,9 +24,17 @@ impl Rule for Truthy {
         "Enforce truthy values"
     }
 
-    fn check(&self, ctx: &RuleContext, config: Option<&crate::config::RuleConfig>) -> Vec<Diagnostic> {
-        let allowed_values = config.and_then(|c| c.get_option("allowed-values")).unwrap_or_else(|| self.allowed_values.clone());
-        let check_keys = config.and_then(|c| c.get_option("check-keys")).unwrap_or(self.check_keys);
+    fn check(
+        &self,
+        ctx: &RuleContext,
+        config: Option<&crate::config::RuleConfig>,
+    ) -> Vec<Diagnostic> {
+        let allowed_values = config
+            .and_then(|c| c.get_option("allowed-values"))
+            .unwrap_or_else(|| self.allowed_values.clone());
+        let check_keys = config
+            .and_then(|c| c.get_option("check-keys"))
+            .unwrap_or(self.check_keys);
 
         let mut diagnostics = Vec::new();
 
@@ -42,24 +50,25 @@ impl Rule for Truthy {
             let key = parts[0].trim();
             let value = parts.get(1).map(|v| v.trim()).unwrap_or("");
 
-            if check_keys && (key == "yes" || key == "no" || key == "on" || key == "off") {
-                if !allowed_values.contains(&key.to_string()) {
-                    diagnostics.push(Diagnostic::error(
-                        self.name(),
-                        format!("unsupported truthy value '{}'", key),
-                        crate::diagnostic::Location::new(line_num, line.find(key).unwrap_or(0) + 1),
-                    ));
-                }
+            if check_keys
+                && (key == "yes" || key == "no" || key == "on" || key == "off")
+                && !allowed_values.contains(&key.to_string())
+            {
+                diagnostics.push(Diagnostic::error(
+                    self.name(),
+                    format!("unsupported truthy value '{}'", key),
+                    crate::diagnostic::Location::new(line_num, line.find(key).unwrap_or(0) + 1),
+                ));
             }
 
-            if value == "yes" || value == "no" || value == "on" || value == "off" {
-                if !allowed_values.contains(&value.to_string()) {
-                    diagnostics.push(Diagnostic::error(
-                        self.name(),
-                        format!("unsupported truthy value '{}'", value),
-                        crate::diagnostic::Location::new(line_num, line.find(value).unwrap_or(0) + 1),
-                    ));
-                }
+            if (value == "yes" || value == "no" || value == "on" || value == "off")
+                && !allowed_values.contains(&value.to_string())
+            {
+                diagnostics.push(Diagnostic::error(
+                    self.name(),
+                    format!("unsupported truthy value '{}'", value),
+                    crate::diagnostic::Location::new(line_num, line.find(value).unwrap_or(0) + 1),
+                ));
             }
         }
         diagnostics

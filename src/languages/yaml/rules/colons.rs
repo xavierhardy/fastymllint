@@ -26,10 +26,20 @@ impl Rule for Colons {
         "Enforce consistent spacing around colons"
     }
 
-    fn check(&self, ctx: &RuleContext, config: Option<&crate::config::RuleConfig>) -> Vec<Diagnostic> {
-        let max_before = config.and_then(|c| c.get_int("max-spaces-before")).unwrap_or(self.max_spaces_before);
-        let min_after = config.and_then(|c| c.get_int("min-spaces-after")).unwrap_or(self.min_spaces_after);
-        let max_after = config.and_then(|c| c.get_int("max-spaces-after")).unwrap_or(self.max_spaces_after);
+    fn check(
+        &self,
+        ctx: &RuleContext,
+        config: Option<&crate::config::RuleConfig>,
+    ) -> Vec<Diagnostic> {
+        let max_before = config
+            .and_then(|c| c.get_int("max-spaces-before"))
+            .unwrap_or(self.max_spaces_before);
+        let min_after = config
+            .and_then(|c| c.get_int("min-spaces-after"))
+            .unwrap_or(self.min_spaces_after);
+        let max_after = config
+            .and_then(|c| c.get_int("max-spaces-after"))
+            .unwrap_or(self.max_spaces_after);
 
         let mut diagnostics = Vec::new();
 
@@ -58,7 +68,7 @@ impl Rule for Colons {
                         // Spaces before
                         let mut spaces_before = 0;
                         let mut j = i;
-                        while j > 0 && chars[j-1].1 == ' ' {
+                        while j > 0 && chars[j - 1].1 == ' ' {
                             spaces_before += 1;
                             j -= 1;
                         }
@@ -83,14 +93,21 @@ impl Rule for Colons {
                             spaces_after += 1;
                             k += 1;
                         }
-                        
+
                         // If it's the end of the line, spaces_after might be trailing spaces
                         // but yamllint still checks it.
-                        
-                        let next_char = if k < chars.len() { Some(chars[k].1) } else { None };
 
-                        if min_after >= 0 && (spaces_after as i64) < min_after && next_char.is_some() {
-                             let diag = Diagnostic::error(
+                        let next_char = if k < chars.len() {
+                            Some(chars[k].1)
+                        } else {
+                            None
+                        };
+
+                        if min_after >= 0
+                            && (spaces_after as i64) < min_after
+                            && next_char.is_some()
+                        {
+                            let diag = Diagnostic::error(
                                 self.name(),
                                 "too few spaces after colon",
                                 Location::new(line_num, pos + 1),
@@ -109,7 +126,10 @@ impl Rule for Colons {
                             diagnostics.push(diag.with_fix(Fix::delete(
                                 "remove extra spaces after colon",
                                 Location::new(line_num, pos + 2),
-                                Location::new(line_num, pos + 2 + (spaces_after - max_after as usize)),
+                                Location::new(
+                                    line_num,
+                                    pos + 2 + (spaces_after - max_after as usize),
+                                ),
                             )));
                         }
                     }

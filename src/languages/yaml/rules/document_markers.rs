@@ -15,7 +15,11 @@ impl Rule for DocumentStart {
         "Require document start marker (---)"
     }
 
-    fn check(&self, ctx: &RuleContext, _config: Option<&crate::config::RuleConfig>) -> Vec<Diagnostic> {
+    fn check(
+        &self,
+        ctx: &RuleContext,
+        _config: Option<&crate::config::RuleConfig>,
+    ) -> Vec<Diagnostic> {
         if ctx.content.is_empty() {
             return vec![];
         }
@@ -66,7 +70,11 @@ impl Rule for DocumentEnd {
         "Require document end marker (...)"
     }
 
-    fn check(&self, ctx: &RuleContext, _config: Option<&crate::config::RuleConfig>) -> Vec<Diagnostic> {
+    fn check(
+        &self,
+        ctx: &RuleContext,
+        _config: Option<&crate::config::RuleConfig>,
+    ) -> Vec<Diagnostic> {
         if ctx.content.is_empty() {
             return vec![];
         }
@@ -138,10 +146,10 @@ pub fn fix_document_end(content: &str) -> String {
 
     // Check if already has document end
     let lines: Vec<&str> = content.lines().collect();
-    if let Some(last) = lines.last() {
-        if last.trim() == "..." {
-            return format!("{}\n", content);
-        }
+    if let Some(last) = lines.last()
+        && last.trim() == "..."
+    {
+        return format!("{}\n", content);
     }
 
     format!("{}\n...\n", content)

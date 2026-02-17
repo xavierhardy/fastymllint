@@ -15,7 +15,11 @@ impl Rule for NewLineAtEndOfFile {
         "Require a new line at the end of the file"
     }
 
-    fn check(&self, ctx: &RuleContext, _config: Option<&crate::config::RuleConfig>) -> Vec<Diagnostic> {
+    fn check(
+        &self,
+        ctx: &RuleContext,
+        _config: Option<&crate::config::RuleConfig>,
+    ) -> Vec<Diagnostic> {
         if ctx.content.is_empty() {
             return vec![];
         }

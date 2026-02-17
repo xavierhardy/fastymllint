@@ -4,16 +4,9 @@ use crate::diagnostic::{Diagnostic, Location};
 use crate::rule::{Rule, RuleContext};
 
 /// Rule that checks for duplicate keys in mappings
+#[derive(Default)]
 pub struct KeyDuplicates {
     pub allowed_keys: Vec<String>,
-}
-
-impl Default for KeyDuplicates {
-    fn default() -> Self {
-        Self {
-            allowed_keys: Vec::new(),
-        }
-    }
 }
 
 impl Rule for KeyDuplicates {
@@ -25,7 +18,11 @@ impl Rule for KeyDuplicates {
         "Forbid duplicate keys in YAML mappings"
     }
 
-    fn check(&self, ctx: &RuleContext, config: Option<&crate::config::RuleConfig>) -> Vec<Diagnostic> {
+    fn check(
+        &self,
+        ctx: &RuleContext,
+        config: Option<&crate::config::RuleConfig>,
+    ) -> Vec<Diagnostic> {
         let allowed_keys = config
             .and_then(|c| c.get_option("allowed-keys"))
             .unwrap_or_else(|| self.allowed_keys.clone());

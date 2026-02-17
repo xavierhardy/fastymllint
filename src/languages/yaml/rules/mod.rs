@@ -87,22 +87,24 @@ impl RuleSet {
         loop {
             let ctx = RuleContext::new(&result);
             let diagnostics = self.check(&ctx, config);
-            
+
             // Find the first diagnostic that has a fix
             let fix = diagnostics.iter().find_map(|d| d.fix.as_ref());
 
             if let Some(fix) = fix {
-                let start_offset = ctx.offset(fix.start).context("Invalid fix start location")?;
+                let start_offset = ctx
+                    .offset(fix.start)
+                    .context("Invalid fix start location")?;
                 let end_offset = ctx.offset(fix.end).context("Invalid fix end location")?;
-                
+
                 let mut new_content = String::with_capacity(result.len() + fix.replacement.len());
                 new_content.push_str(&result[..start_offset]);
                 new_content.push_str(&fix.replacement);
                 new_content.push_str(&result[end_offset..]);
-                
+
                 result = new_content;
                 iterations += 1;
-                
+
                 if iterations >= MAX_ITERATIONS {
                     break;
                 }
@@ -132,7 +134,7 @@ impl Default for RuleSet {
             Box::new(Colons::default()),
             Box::new(Commas::default()),
             Box::new(Comments::default()),
-            Box::new(CommentsIndentation::default()),
+            Box::new(CommentsIndentation),
             Box::new(EmptyValues::default()),
             Box::new(FloatValues::default()),
             Box::new(Hyphens::default()),
@@ -144,28 +146,4 @@ impl Default for RuleSet {
             Box::new(Anchors::default()),
         ])
     }
-}
-
-fn is_rule_enabled(config: Option<&LanguageConfig>, rule: &str) -> bool {
-    config
-        .and_then(|c| c.rules.get(rule))
-        .map(|rc| rc.is_enabled())
-        .unwrap_or(true)
-}
-
-fn is_rule_enabled_explicit(config: Option<&LanguageConfig>, rule: &str) -> bool {
-    config
-        .and_then(|c| c.rules.get(rule))
-        .map(|rc| rc.is_enabled())
-        .unwrap_or(false) // Default to disabled for opt-in rules
-}
-
-fn get_rule_option<T: for<'de> serde::Deserialize<'de>>(
-    config: Option<&LanguageConfig>,
-    rule: &str,
-    option: &str,
-) -> Option<T> {
-    config
-        .and_then(|c| c.rules.get(rule))
-        .and_then(|rc| rc.get_option(option))
 }

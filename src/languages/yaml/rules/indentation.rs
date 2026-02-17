@@ -26,13 +26,25 @@ impl Rule for Indentation {
         "Check for consistent indentation"
     }
 
-    fn check(&self, ctx: &RuleContext, config: Option<&crate::config::RuleConfig>) -> Vec<Diagnostic> {
-        let spaces = config.and_then(|c| c.get_string("spaces")).unwrap_or_else(|| self.spaces.clone());
-        let indent_sequences = config.and_then(|c| c.get_option("indent-sequences")).unwrap_or(self.indent_sequences);
+    fn check(
+        &self,
+        ctx: &RuleContext,
+        config: Option<&crate::config::RuleConfig>,
+    ) -> Vec<Diagnostic> {
+        let spaces = config
+            .and_then(|c| c.get_string("spaces"))
+            .unwrap_or_else(|| self.spaces.clone());
+        let indent_sequences = config
+            .and_then(|c| c.get_option("indent-sequences"))
+            .unwrap_or(self.indent_sequences);
 
         let mut diagnostics = Vec::new();
         let mut prev_indent = 0;
-        let mut indent_size = if spaces == "consistent" { 0 } else { spaces.parse().unwrap_or(2) };
+        let mut indent_size = if spaces == "consistent" {
+            0
+        } else {
+            spaces.parse().unwrap_or(2)
+        };
         let mut sequence_indent: Option<usize> = None;
 
         for (i, line) in ctx.lines.iter().enumerate() {
@@ -68,7 +80,10 @@ impl Rule for Indentation {
                 } else if diff != indent_size {
                     diagnostics.push(Diagnostic::error(
                         self.name(),
-                        format!("wrong indentation: expected {}, found {}", indent_size, diff),
+                        format!(
+                            "wrong indentation: expected {}, found {}",
+                            indent_size, diff
+                        ),
                         Location::new(line_num, 1),
                     ));
                 }
@@ -84,7 +99,7 @@ impl Rule for Indentation {
             }
 
             if indent_size != 0 && current_indent % indent_size != 0 {
-                 diagnostics.push(Diagnostic::error(
+                diagnostics.push(Diagnostic::error(
                     self.name(),
                     "wrong indentation: not a multiple of indent size",
                     Location::new(line_num, 1),
@@ -100,5 +115,3 @@ impl Rule for Indentation {
         false // Too complex to fix reliably
     }
 }
-
-
