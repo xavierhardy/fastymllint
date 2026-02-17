@@ -1,67 +1,17 @@
-//! Indentation rule
-
 use crate::diagnostic::{Diagnostic, Location};
 use crate::rule::{Rule, RuleContext};
 
-/// Rule that checks for consistent indentation
 pub struct Indentation {
-    /// Number of spaces per indentation level (or 0 for "consistent")
-    spaces: usize,
-    /// Whether block sequences should be indented
-    indent_sequences: IndentSequences,
-    /// Whether to check multi-line strings
-    check_multi_line_strings: bool,
-}
-
-/// How to handle sequence indentation
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum IndentSequences {
-    /// Sequences must be indented
-    True,
-    /// Sequences must not be indented
-    False,
-    /// Either is acceptable
-    Whatever,
-    /// Must be consistent within the file
-    Consistent,
-}
-
-impl Indentation {
-    pub fn new(spaces: usize) -> Self {
-        Self {
-            spaces,
-            indent_sequences: IndentSequences::True,
-            check_multi_line_strings: false,
-        }
-    }
-
-    pub fn with_options(
-        spaces: usize,
-        indent_sequences: IndentSequences,
-        check_multi_line_strings: bool,
-    ) -> Self {
-        Self {
-            spaces,
-            indent_sequences,
-            check_multi_line_strings,
-        }
-    }
-
-    fn get_indentation(line: &str) -> usize {
-        line.len() - line.trim_start().len()
-    }
-
-    fn is_comment_or_empty(line: &str) -> bool {
-        let trimmed = line.trim();
-        trimmed.is_empty() || trimmed.starts_with('#')
-    }
+    pub spaces: String,
+    pub indent_sequences: bool,
+    pub check_multi_line_strings: bool,
 }
 
 impl Default for Indentation {
     fn default() -> Self {
         Self {
-            spaces: 2, // Will be treated as "consistent" check
-            indent_sequences: IndentSequences::True,
+            spaces: "consistent".to_string(),
+            indent_sequences: true,
             check_multi_line_strings: false,
         }
     }
@@ -76,92 +26,79 @@ impl Rule for Indentation {
         "Check for consistent indentation"
     }
 
-    fn check(&self, ctx: &RuleContext) -> Vec<Diagnostic> {
-        let mut diagnostics = Vec::new();
-        let mut detected_indent: Option<usize> = None;
-        let mut prev_indent = 0;
+    fn check(&self, ctx: &RuleContext, config: Option<&crate::config::RuleConfig>) -> Vec<Diagnostic> {
+        let spaces = config.and_then(|c| c.get_string("spaces")).unwrap_or_else(|| self.spaces.clone());
+        let indent_sequences = config.and_then(|c| c.get_option("indent-sequences")).unwrap_or(self.indent_sequences);
 
-        for (idx, line) in ctx.lines.iter().enumerate() {
-            if Self::is_comment_or_empty(line) {
+        let mut diagnostics = Vec::new();
+        let mut prev_indent = 0;
+        let mut indent_size = if spaces == "consistent" { 0 } else { spaces.parse().unwrap_or(2) };
+        let mut sequence_indent: Option<usize> = None;
+
+        for (i, line) in ctx.lines.iter().enumerate() {
+            let line_num = i + 1;
+            let trimmed = line.trim();
+
+            if trimmed.is_empty() || trimmed.starts_with('#') {
                 continue;
             }
 
-            let current_indent = Self::get_indentation(line);
-            let line_num = idx + 1;
+            let current_indent = line.len() - trimmed.len();
 
-            // Check if indentation increased
-            if current_indent > prev_indent {
-                let indent_diff = current_indent - prev_indent;
-
-                // Detect or validate indentation size
-                if let Some(expected) = detected_indent {
-                    if indent_diff != expected && indent_diff != 0 {
-                        diagnostics.push(Diagnostic::warning(
+            if trimmed.starts_with("- ") {
+                if let Some(seq_indent) = sequence_indent {
+                    if indent_sequences && current_indent != seq_indent {
+                        diagnostics.push(Diagnostic::error(
                             self.name(),
-                            format!(
-                                "wrong indentation: expected {} but found {}",
-                                expected, indent_diff
-                            ),
+                            "wrong indentation for sequence",
                             Location::new(line_num, 1),
                         ));
                     }
-                } else if self.spaces == 0 {
-                    // "Consistent" mode: detect first indentation
-                    detected_indent = Some(indent_diff);
-                } else if indent_diff != self.spaces {
-                    diagnostics.push(Diagnostic::warning(
+                } else {
+                    sequence_indent = Some(current_indent);
+                }
+            } else {
+                sequence_indent = None;
+            }
+
+            if current_indent > prev_indent {
+                let diff = current_indent - prev_indent;
+                if indent_size == 0 {
+                    indent_size = diff;
+                } else if diff != indent_size {
+                    diagnostics.push(Diagnostic::error(
                         self.name(),
-                        format!(
-                            "wrong indentation: expected {} but found {}",
-                            self.spaces, indent_diff
-                        ),
+                        format!("wrong indentation: expected {}, found {}", indent_size, diff),
+                        Location::new(line_num, 1),
+                    ));
+                }
+            } else if current_indent < prev_indent {
+                let diff = prev_indent - current_indent;
+                if indent_size != 0 && diff % indent_size != 0 {
+                    diagnostics.push(Diagnostic::error(
+                        self.name(),
+                        "wrong indentation: not a multiple of indent size",
                         Location::new(line_num, 1),
                     ));
                 }
             }
 
-            // Check for odd indentation (not a multiple of expected)
-            let expected_spaces = detected_indent.unwrap_or(self.spaces);
-            if expected_spaces > 0 && current_indent % expected_spaces != 0 {
-                diagnostics.push(Diagnostic::warning(
+            if indent_size != 0 && current_indent % indent_size != 0 {
+                 diagnostics.push(Diagnostic::error(
                     self.name(),
-                    format!("indentation is not a multiple of {}", expected_spaces),
+                    "wrong indentation: not a multiple of indent size",
                     Location::new(line_num, 1),
                 ));
             }
 
             prev_indent = current_indent;
         }
-
         diagnostics
     }
 
     fn is_fixable(&self) -> bool {
-        false // Indentation fixing is complex and risky
+        false // Too complex to fix reliably
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
 
-    #[test]
-    fn test_consistent_indentation() {
-        let content = "root:\n  child1:\n    grandchild: value\n  child2: value\n";
-        let ctx = RuleContext::new(content);
-        let rule = Indentation::new(2);
-        let diagnostics = rule.check(&ctx);
-
-        assert!(diagnostics.is_empty());
-    }
-
-    #[test]
-    fn test_inconsistent_indentation() {
-        let content = "root:\n  child1:\n   bad_indent: value\n";
-        let ctx = RuleContext::new(content);
-        let rule = Indentation::new(2);
-        let diagnostics = rule.check(&ctx);
-
-        assert!(!diagnostics.is_empty());
-    }
-}

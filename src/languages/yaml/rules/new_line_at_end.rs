@@ -15,7 +15,7 @@ impl Rule for NewLineAtEndOfFile {
         "Require a new line at the end of the file"
     }
 
-    fn check(&self, ctx: &RuleContext) -> Vec<Diagnostic> {
+    fn check(&self, ctx: &RuleContext, _config: Option<&crate::config::RuleConfig>) -> Vec<Diagnostic> {
         if ctx.content.is_empty() {
             return vec![];
         }
@@ -63,7 +63,7 @@ mod tests {
     fn test_missing_newline() {
         let content = "hello: world";
         let ctx = RuleContext::new(content);
-        let diagnostics = NewLineAtEndOfFile.check(&ctx);
+        let diagnostics = NewLineAtEndOfFile.check(&ctx, None);
 
         assert_eq!(diagnostics.len(), 1);
     }
@@ -72,7 +72,7 @@ mod tests {
     fn test_has_newline() {
         let content = "hello: world\n";
         let ctx = RuleContext::new(content);
-        let diagnostics = NewLineAtEndOfFile.check(&ctx);
+        let diagnostics = NewLineAtEndOfFile.check(&ctx, None);
 
         assert!(diagnostics.is_empty());
     }

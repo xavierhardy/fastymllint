@@ -1,11 +1,20 @@
-use crate::diagnostic::{Diagnostic, Location, Severity};
+use crate::diagnostic::{Diagnostic, Fix, Location};
 use crate::rule::{Rule, RuleContext};
 
-#[derive(Default)]
 pub struct Commas {
-    pub max_spaces_before: Option<usize>,
-    pub min_spaces_after: usize,
-    pub max_spaces_after: Option<usize>,
+    pub max_spaces_before: i64,
+    pub min_spaces_after: i64,
+    pub max_spaces_after: i64,
+}
+
+impl Default for Commas {
+    fn default() -> Self {
+        Self {
+            max_spaces_before: 0,
+            min_spaces_after: 1,
+            max_spaces_after: 1,
+        }
+    }
 }
 
 impl Rule for Commas {
@@ -14,103 +23,101 @@ impl Rule for Commas {
     }
 
     fn description(&self) -> &'static str {
-        "Enforce consistant spacing around commas"
+        "Enforce consistent spacing around commas"
     }
 
-    fn check(&self, ctx: &RuleContext) -> Vec<Diagnostic> {
+    fn check(&self, ctx: &RuleContext, config: Option<&crate::config::RuleConfig>) -> Vec<Diagnostic> {
+        let max_before = config.and_then(|c| c.get_int("max-spaces-before")).unwrap_or(self.max_spaces_before);
+        let min_after = config.and_then(|c| c.get_int("min-spaces-after")).unwrap_or(self.min_spaces_after);
+        let max_after = config.and_then(|c| c.get_int("max-spaces-after")).unwrap_or(self.max_spaces_after);
+
         let mut diagnostics = Vec::new();
-        let content = &ctx.content;
 
-        for (line_idx, line) in content.lines().enumerate() {
-            let mut chars = line.chars().enumerate().peekable();
+        for (idx, line) in ctx.lines.iter().enumerate() {
+            let line_num = idx + 1;
+            let mut in_quote = false;
+            let mut quote_char = ' ';
+            let chars: Vec<(usize, char)> = line.char_indices().collect();
 
-            while let Some((i, c)) = chars.next() {
-                if c == ',' {
-                    // Check spaces before
-                    if let Some(max_before) = self.max_spaces_before {
+            let mut i = 0;
+            while i < chars.len() {
+                let (pos, c) = chars[i];
+                match c {
+                    '"' | '\'' if !in_quote => {
+                        in_quote = true;
+                        quote_char = c;
+                    }
+                    c if c == quote_char && in_quote => {
+                        in_quote = false;
+                    }
+                    ',' if !in_quote => {
+                        // Spaces before
                         let mut spaces_before = 0;
                         let mut j = i;
-                        while j > 0 {
+                        while j > 0 && chars[j-1].1 == ' ' {
+                            spaces_before += 1;
                             j -= 1;
-                            if line.chars().nth(j) == Some(' ') {
-                                spaces_before += 1;
-                            } else {
-                                break;
-                            }
                         }
 
-                        if spaces_before > max_before {
-                            diagnostics.push(Diagnostic {
-                                severity: Severity::Error,
-                                message: "too many spaces before comma".to_string(),
-                                location: Location {
-                                    line: line_idx + 1,
-                                    column: i + 1 - spaces_before,
-                                },
-                                end_location: Some(Location {
-                                    line: line_idx + 1,
-                                    column: i + 1,
-                                }),
-                                fix: None,
-                                rule: self.name().to_string(),
-                            });
+                        if max_before >= 0 && (spaces_before as i64) > max_before {
+                            let diag = Diagnostic::error(
+                                self.name(),
+                                "too many spaces before comma",
+                                Location::new(line_num, chars[j].0 + 1),
+                            );
+                            diagnostics.push(diag.with_fix(Fix::delete(
+                                "remove extra spaces before comma",
+                                Location::new(line_num, chars[j].0 + 1),
+                                Location::new(line_num, pos + 1),
+                            )));
                         }
-                    }
 
-                    // Check spaces after
-                    let mut spaces_after = 0;
-                    let mut iter = line[i + 1..].chars();
-                    while let Some(next_char) = iter.next() {
-                        if next_char == ' ' {
+                        // Spaces after
+                        let mut spaces_after = 0;
+                        let mut k = i + 1;
+                        while k < chars.len() && chars[k].1 == ' ' {
                             spaces_after += 1;
-                        } else {
-                            break;
+                            k += 1;
+                        }
+                        
+                        let next_char = if k < chars.len() { Some(chars[k].1) } else { None };
+
+                        if min_after >= 0 && (spaces_after as i64) < min_after && next_char.is_some() && next_char != Some('\n') {
+                             let diag = Diagnostic::error(
+                                self.name(),
+                                "too few spaces after comma",
+                                Location::new(line_num, pos + 1),
+                            );
+                            diagnostics.push(diag.with_fix(Fix::insert(
+                                "add spaces after comma",
+                                " ".repeat((min_after - (spaces_after as i64)) as usize),
+                                Location::new(line_num, pos + 2),
+                            )));
+                        } else if max_after >= 0 && (spaces_after as i64) > max_after {
+                            let diag = Diagnostic::error(
+                                self.name(),
+                                "too many spaces after comma",
+                                Location::new(line_num, pos + 2),
+                            );
+                            diagnostics.push(diag.with_fix(Fix::delete(
+                                "remove extra spaces after comma",
+                                Location::new(line_num, pos + 2),
+                                Location::new(line_num, pos + 2 + (spaces_after - max_after as usize)),
+                            )));
                         }
                     }
-
-                    if spaces_after < self.min_spaces_after {
-                        diagnostics.push(Diagnostic {
-                            severity: Severity::Error,
-                            message: "too few spaces after comma".to_string(),
-                            location: Location {
-                                line: line_idx + 1,
-                                column: i + 1 + 1,
-                            },
-                            end_location: Some(Location {
-                                line: line_idx + 1,
-                                column: i + 1 + 1 + spaces_after,
-                            }),
-                            fix: None,
-                            rule: self.name().to_string(),
-                        });
-                    }
-
-                    if let Some(max_after) = self.max_spaces_after {
-                        if spaces_after > max_after {
-                            diagnostics.push(Diagnostic {
-                                severity: Severity::Error,
-                                message: "too many spaces after comma".to_string(),
-                                location: Location {
-                                    line: line_idx + 1,
-                                    column: i + 1 + 1,
-                                },
-                                end_location: Some(Location {
-                                    line: line_idx + 1,
-                                    column: i + 1 + 1 + spaces_after,
-                                }),
-                                fix: None,
-                                rule: self.name().to_string(),
-                            });
-                        }
-                    }
+                    _ => {}
                 }
+                i += 1;
             }
         }
+
+        diagnostics.sort_by_key(|d| (d.location.line, d.location.column));
         diagnostics
     }
 
     fn is_fixable(&self) -> bool {
-        false
+        true
     }
 }
 
@@ -121,12 +128,12 @@ mod tests {
     #[test]
     fn test_commas_before() {
         let rule = Commas {
-            max_spaces_before: Some(0),
+            max_spaces_before: 0,
             ..Default::default()
         };
-        let content = "key , value";
+        let content = "[item1 , item2]";
         let ctx = RuleContext::new(content);
-        let diagnostics = rule.check(&ctx);
+        let diagnostics = rule.check(&ctx, None);
         assert_eq!(diagnostics.len(), 1);
         assert_eq!(diagnostics[0].message, "too many spaces before comma");
     }
@@ -137,9 +144,9 @@ mod tests {
             min_spaces_after: 1,
             ..Default::default()
         };
-        let content = "item1,item2";
+        let content = "[item1,item2]";
         let ctx = RuleContext::new(content);
-        let diagnostics = rule.check(&ctx);
+        let diagnostics = rule.check(&ctx, None);
         assert_eq!(diagnostics.len(), 1);
         assert_eq!(diagnostics[0].message, "too few spaces after comma");
     }
@@ -147,12 +154,12 @@ mod tests {
     #[test]
     fn test_commas_max_after() {
         let rule = Commas {
-            max_spaces_after: Some(1),
+            max_spaces_after: 1,
             ..Default::default()
         };
-        let content = "item1,  item2";
+        let content = "[item1,  item2]";
         let ctx = RuleContext::new(content);
-        let diagnostics = rule.check(&ctx);
+        let diagnostics = rule.check(&ctx, None);
         assert_eq!(diagnostics.len(), 1);
         assert_eq!(diagnostics[0].message, "too many spaces after comma");
     }

@@ -1,12 +1,20 @@
-//! Key duplicates rule
-
 use std::collections::HashMap;
 
 use crate::diagnostic::{Diagnostic, Location};
 use crate::rule::{Rule, RuleContext};
 
 /// Rule that checks for duplicate keys in mappings
-pub struct KeyDuplicates;
+pub struct KeyDuplicates {
+    pub allowed_keys: Vec<String>,
+}
+
+impl Default for KeyDuplicates {
+    fn default() -> Self {
+        Self {
+            allowed_keys: Vec::new(),
+        }
+    }
+}
 
 impl Rule for KeyDuplicates {
     fn name(&self) -> &'static str {
@@ -17,7 +25,11 @@ impl Rule for KeyDuplicates {
         "Forbid duplicate keys in YAML mappings"
     }
 
-    fn check(&self, ctx: &RuleContext) -> Vec<Diagnostic> {
+    fn check(&self, ctx: &RuleContext, config: Option<&crate::config::RuleConfig>) -> Vec<Diagnostic> {
+        let allowed_keys = config
+            .and_then(|c| c.get_option("allowed-keys"))
+            .unwrap_or_else(|| self.allowed_keys.clone());
+
         let mut diagnostics = Vec::new();
 
         // Track keys at each indentation level
@@ -44,6 +56,10 @@ impl Rule for KeyDuplicates {
             // Check if this line defines a key
             if let Some(colon_pos) = find_key_colon(trimmed) {
                 let key = trimmed[..colon_pos].trim().to_string();
+
+                if allowed_keys.contains(&key) {
+                    continue;
+                }
 
                 // Skip if key starts with special chars (anchors, etc.)
                 if key.starts_with('&') || key.starts_with('*') || key.starts_with('-') {
@@ -122,7 +138,7 @@ mod tests {
     fn test_duplicate_keys() {
         let content = "name: foo\nvalue: 1\nname: bar\n";
         let ctx = RuleContext::new(content);
-        let diagnostics = KeyDuplicates.check(&ctx);
+        let diagnostics = KeyDuplicates::default().check(&ctx, None);
 
         assert_eq!(diagnostics.len(), 1);
         assert_eq!(diagnostics[0].location.line, 3);
@@ -132,7 +148,7 @@ mod tests {
     fn test_no_duplicates() {
         let content = "name: foo\nvalue: 1\nother: bar\n";
         let ctx = RuleContext::new(content);
-        let diagnostics = KeyDuplicates.check(&ctx);
+        let diagnostics = KeyDuplicates::default().check(&ctx, None);
 
         assert!(diagnostics.is_empty());
     }
@@ -142,7 +158,7 @@ mod tests {
         // Same key at different nesting levels is OK
         let content = "parent:\n  name: foo\nname: bar\n";
         let ctx = RuleContext::new(content);
-        let diagnostics = KeyDuplicates.check(&ctx);
+        let diagnostics = KeyDuplicates::default().check(&ctx, None);
 
         assert!(diagnostics.is_empty());
     }

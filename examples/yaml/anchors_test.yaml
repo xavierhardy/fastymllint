@@ -1,0 +1,9 @@
+# Test anchors
+anchor1: &anchor1 value
+alias1: *anchor1
+alias2: *undeclared
+anchor2: &anchor2 value
+anchor3: &anchor3 value
+anchor3_bis: &anchor3 value2
+unused: &unused value
+alias3: *anchor3

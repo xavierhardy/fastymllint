@@ -1,4 +1,4 @@
-use crate::diagnostic::{Diagnostic, Location, Severity};
+use crate::diagnostic::{Diagnostic, Fix, Location};
 use crate::rule::{Rule, RuleContext};
 
 pub struct Comments {
@@ -26,49 +26,43 @@ impl Rule for Comments {
         "Enforce comment formatting"
     }
 
-    fn check(&self, ctx: &RuleContext) -> Vec<Diagnostic> {
-        let mut diagnostics = Vec::new();
-        let content = &ctx.content;
+    fn check(&self, ctx: &RuleContext, config: Option<&crate::config::RuleConfig>) -> Vec<Diagnostic> {
+        let require_starting_space = config.and_then(|c| c.get_option("require-starting-space")).unwrap_or(self.require_starting_space);
+        let ignore_shebangs = config.and_then(|c| c.get_option("ignore-shebangs")).unwrap_or(self.ignore_shebangs);
+        let min_spaces_from_content = config.and_then(|c| c.get_option("min-spaces-from-content")).unwrap_or(self.min_spaces_from_content);
 
-        for (line_idx, line) in content.lines().enumerate() {
-            let trimmed = line.trim_start();
+        let mut diagnostics = Vec::new();
+
+        for (idx, line) in ctx.lines.iter().enumerate() {
+            let line_num = idx + 1;
             if let Some(comment_start) = line.find('#') {
                 // Ignore shebangs if configured
-                if self.ignore_shebangs && line_idx == 0 && line.starts_with("#!") {
+                if ignore_shebangs && line_num == 1 && line.starts_with("#!") {
                     continue;
                 }
 
-                // Check starting space
-                if self.require_starting_space {
-                    if comment_start + 1 < line.len() {
-                        let next_char = line[comment_start + 1..].chars().next();
-                        if let Some(c) = next_char {
-                            if c != ' ' && c != '#' {
-                                // Allow '##' for headers/sections
-                                diagnostics.push(Diagnostic {
-                                    severity: Severity::Error,
-                                    message: "too few spaces before comment".to_string(), // Actually "missing starting space"
-                                    location: Location {
-                                        line: line_idx + 1,
-                                        column: comment_start + 1,
-                                    },
-                                    end_location: Some(Location {
-                                        line: line_idx + 1,
-                                        column: comment_start + 2,
-                                    }),
-                                    fix: None,
-                                    rule: self.name().to_string(),
-                                });
-                            }
+                // Check for space after comment marker
+                if require_starting_space {
+                    if let Some(next_char) = line[comment_start + 1..].chars().next() {
+                        if next_char != ' ' && !next_char.is_whitespace() {
+                            let diag = Diagnostic::error(
+                                self.name(),
+                                "no space after comment's #",
+                                Location::new(line_num, comment_start + 1),
+                            );
+                            diagnostics.push(diag.with_fix(Fix::insert(
+                                "add space after #",
+                                " ",
+                                Location::new(line_num, comment_start + 2),
+                            )));
                         }
                     }
                 }
 
-                // Check min spaces from content
+                // Check for spaces before inline comments
                 if comment_start > 0 {
                     let before_comment = &line[..comment_start];
-                    if !before_comment.trim().is_empty() {
-                        // Content exists before comment
+                    if !before_comment.trim().is_empty() { // It's an inline comment
                         let mut spaces = 0;
                         for c in before_comment.chars().rev() {
                             if c == ' ' {
@@ -78,21 +72,17 @@ impl Rule for Comments {
                             }
                         }
 
-                        if spaces < self.min_spaces_from_content {
-                            diagnostics.push(Diagnostic {
-                                severity: Severity::Error,
-                                message: "too few spaces before comment".to_string(),
-                                location: Location {
-                                    line: line_idx + 1,
-                                    column: comment_start + 1 - spaces,
-                                },
-                                end_location: Some(Location {
-                                    line: line_idx + 1,
-                                    column: comment_start + 1,
-                                }),
-                                fix: None,
-                                rule: self.name().to_string(),
-                            });
+                        if spaces < min_spaces_from_content {
+                            let diag = Diagnostic::error(
+                                self.name(),
+                                "too few spaces before comment",
+                                Location::new(line_num, comment_start + 1 - spaces),
+                            );
+                            diagnostics.push(diag.with_fix(Fix::insert(
+                                "add spaces before comment",
+                                " ".repeat(min_spaces_from_content - spaces),
+                                Location::new(line_num, comment_start + 1),
+                            )));
                         }
                     }
                 }
@@ -102,7 +92,7 @@ impl Rule for Comments {
     }
 
     fn is_fixable(&self) -> bool {
-        false
+        true
     }
 }
 
@@ -118,9 +108,9 @@ mod tests {
         };
         let content = "#comment";
         let ctx = RuleContext::new(content);
-        let diagnostics = rule.check(&ctx);
+        let diagnostics = rule.check(&ctx, None);
         assert_eq!(diagnostics.len(), 1);
-        assert_eq!(diagnostics[0].message, "too few spaces before comment"); // Wait, message is confusing, fix implementation message
+        assert_eq!(diagnostics[0].message, "no space after comment's #");
     }
 
     #[test]
@@ -128,11 +118,11 @@ mod tests {
         let rule = Comments {
             min_spaces_from_content: 2,
             require_starting_space: false,
-            ..Default::default()
+            ignore_shebangs: true,
         };
         let content = "key: value #comment";
         let ctx = RuleContext::new(content);
-        let diagnostics = rule.check(&ctx);
+        let diagnostics = rule.check(&ctx, None);
         assert_eq!(diagnostics.len(), 1);
         assert_eq!(diagnostics[0].message, "too few spaces before comment");
     }
@@ -144,7 +134,7 @@ mod tests {
         };
         let content = "#!/bin/bash";
         let ctx = RuleContext::new(content);
-        let diagnostics = rule.check(&ctx);
+        let diagnostics = rule.check(&ctx, None);
         assert_eq!(diagnostics.len(), 0);
     }
 }

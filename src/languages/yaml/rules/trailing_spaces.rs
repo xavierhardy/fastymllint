@@ -15,7 +15,7 @@ impl Rule for TrailingSpaces {
         "Forbid trailing spaces at the end of lines"
     }
 
-    fn check(&self, ctx: &RuleContext) -> Vec<Diagnostic> {
+    fn check(&self, ctx: &RuleContext, _config: Option<&crate::config::RuleConfig>) -> Vec<Diagnostic> {
         ctx.lines
             .iter()
             .enumerate()
@@ -66,7 +66,7 @@ mod tests {
     fn test_trailing_spaces_detection() {
         let content = "hello   \nworld\nfoo  ";
         let ctx = RuleContext::new(content);
-        let diagnostics = TrailingSpaces.check(&ctx);
+        let diagnostics = TrailingSpaces.check(&ctx, None);
 
         assert_eq!(diagnostics.len(), 2);
         assert_eq!(diagnostics[0].location.line, 1);

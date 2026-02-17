@@ -1,4 +1,4 @@
-use crate::diagnostic::{Diagnostic, Location, Severity};
+use crate::diagnostic::{Diagnostic, Fix, Location};
 use crate::rule::{Rule, RuleContext};
 
 #[derive(Default)]
@@ -13,12 +13,11 @@ impl Rule for CommentsIndentation {
         "Enforce comment indentation consistency"
     }
 
-    fn check(&self, ctx: &RuleContext) -> Vec<Diagnostic> {
+    fn check(&self, ctx: &RuleContext, _config: Option<&crate::config::RuleConfig>) -> Vec<Diagnostic> {
         let mut diagnostics = Vec::new();
-        let content = &ctx.content;
-        let lines: Vec<&str> = content.lines().collect();
 
-        for (i, line) in lines.iter().enumerate() {
+        for (i, line) in ctx.lines.iter().enumerate() {
+            let line_num = i + 1;
             let trimmed = line.trim_start();
             if trimmed.starts_with('#') {
                 // It's a full-line comment
@@ -28,7 +27,7 @@ impl Rule for CommentsIndentation {
                 let mut target_indent = None;
 
                 // Look forward
-                for next_line in lines.iter().skip(i + 1) {
+                for next_line in ctx.lines.iter().skip(i + 1) {
                     let next_trimmed = next_line.trim_start();
                     if !next_trimmed.is_empty() && !next_trimmed.starts_with('#') {
                         target_indent = Some(next_line.len() - next_trimmed.len());
@@ -38,7 +37,7 @@ impl Rule for CommentsIndentation {
 
                 // If no next line, look backward (e.g. comment at end of block)
                 if target_indent.is_none() {
-                    for prev_line in lines.iter().take(i).rev() {
+                    for prev_line in ctx.lines.iter().take(i).rev() {
                         let prev_trimmed = prev_line.trim_start();
                         if !prev_trimmed.is_empty() && !prev_trimmed.starts_with('#') {
                             target_indent = Some(prev_line.len() - prev_trimmed.len());
@@ -49,20 +48,18 @@ impl Rule for CommentsIndentation {
 
                 if let Some(target) = target_indent {
                     if indent != target {
-                        diagnostics.push(Diagnostic {
-                            severity: Severity::Error,
-                            message: "comment not indented like content".to_string(),
-                            location: Location {
-                                line: i + 1,
-                                column: 1,
-                            },
-                            end_location: Some(Location {
-                                line: i + 1,
-                                column: indent + 1,
-                            }),
-                            fix: None,
-                            rule: self.name().to_string(),
-                        });
+                        let diag = Diagnostic::error(
+                            self.name(),
+                            "comment not indented like content",
+                            Location::new(line_num, 1),
+                        );
+                        let new_line = format!("{}{}", " ".repeat(target), trimmed);
+                        diagnostics.push(diag.with_fix(Fix::new(
+                            "re-indent comment",
+                            new_line,
+                            Location::new(line_num, 1),
+                            Location::new(line_num, line.len() + 1),
+                        )));
                     }
                 }
             }
@@ -71,7 +68,7 @@ impl Rule for CommentsIndentation {
     }
 
     fn is_fixable(&self) -> bool {
-        false
+        true
     }
 }
 
@@ -84,7 +81,7 @@ mod tests {
         let rule = CommentsIndentation;
         let content = "key:\n  value\n  # comment\n  other: value";
         let ctx = RuleContext::new(content);
-        let diagnostics = rule.check(&ctx);
+        let diagnostics = rule.check(&ctx, None);
         assert_eq!(diagnostics.len(), 0);
     }
 
@@ -93,7 +90,7 @@ mod tests {
         let rule = CommentsIndentation;
         let content = "key:\n  value\n# comment\n  other: value";
         let ctx = RuleContext::new(content);
-        let diagnostics = rule.check(&ctx);
+        let diagnostics = rule.check(&ctx, None);
         assert_eq!(diagnostics.len(), 1);
         assert_eq!(diagnostics[0].message, "comment not indented like content");
     }

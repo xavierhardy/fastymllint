@@ -39,3 +39,27 @@
 - 2026-02-10: Add mandatory documentation update requirement to `GEMINI.md`.
 - 2026-02-10: Move `DONE_TASKS.md` to `docs/` and update project-wide references.
 - 2026-02-10: Enforce date format in `docs/DONE_TASKS.md` via `GEMINI.md`.
+- 2026-02-17: Completed YAML rule `anchors` with full configuration support and refactored `Rule` trait.
+- 2026-02-17: Refactored auto-fix system to be more extensible, moving logic from `RuleSet` to individual `Rule`s using a diagnostic-based `Fix` system.
+- 2026-02-17: Completed YAML rule `braces` with configuration and auto-fix.
+- 2026-02-17: Completed YAML rule `brackets` with configuration and auto-fix.
+- 2026-02-17: Completed YAML rule `colons` with configuration and auto-fix.
+- 2026-02-17: Completed YAML rule `commas` with configuration and auto-fix.
+- 2026-02-17: Completed YAML rule `comments` with configuration and auto-fix.
+- 2026-02-17: Completed YAML rule `comments-indentation` with configuration and auto-fix.
+- 2026-02-17: Completed YAML rule `document-start` with configuration and auto-fix.
+- 2026-02-17: Completed YAML rule `document-end` with configuration and auto-fix.
+- 2026-02-17: Completed YAML rule `empty-lines` with configuration and auto-fix.
+- 2026-02-17: Completed YAML rule `empty-values` with configuration.
+- 2026-02-17: Completed YAML rule `float-values` with configuration.
+- 2026-02-17: Completed YAML rule `hyphens` with configuration and auto-fix.
+- 2026-02-17: Completed YAML rule `indentation` with configuration.
+- 2026-02-17: Completed YAML rule `key-duplicates` with configuration.
+- 2026-02-17: Completed YAML rule `key-ordering` with configuration.
+- 2026-02-17: Completed YAML rule `line-length` with configuration.
+- 2026-02-17: Completed YAML rule `new-line-at-end-of-file` with configuration and auto-fix.
+- 2026-02-17: Completed YAML rule `new-lines` with configuration and auto-fix.
+- 2026-02-17: Completed YAML rule `octal-values` with configuration.
+- 2026-02-17: Completed YAML rule `quoted-strings` with configuration and auto-fix.
+- 2026-02-17: Completed YAML rule `trailing-spaces` with configuration and auto-fix.
+- 2026-02-17: Completed YAML rule `truthy` with configuration.

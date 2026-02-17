@@ -67,6 +67,14 @@ impl RuleConfig {
             _ => None,
         }
     }
+
+    pub fn get_int(&self, key: &str) -> Option<i64> {
+        self.get_option(key)
+    }
+
+    pub fn get_string(&self, key: &str) -> Option<String> {
+        self.get_option(key)
+    }
 }
 
 impl Default for RuleConfig {

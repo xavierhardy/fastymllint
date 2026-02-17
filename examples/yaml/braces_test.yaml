@@ -1,0 +1,7 @@
+# Test braces
+valid: { key: value }
+too_many: {  key: value  }
+too_few: {key: value}
+empty: { }
+empty_too_many: {  }
+forbidden: { a: 1 }

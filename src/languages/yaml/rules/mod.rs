@@ -23,7 +23,7 @@ mod quoted_strings;
 mod trailing_spaces;
 mod truthy;
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 
 use crate::config::LanguageConfig;
 use crate::diagnostic::Diagnostic;
@@ -66,44 +66,50 @@ impl RuleSet {
     pub fn check(&self, ctx: &RuleContext, config: Option<&LanguageConfig>) -> Vec<Diagnostic> {
         self.rules
             .iter()
-            .filter(|rule| {
-                config
-                    .and_then(|c| c.rules.get(rule.name()))
-                    .map(|rc| rc.is_enabled())
-                    .unwrap_or(true)
+            .filter_map(|rule| {
+                let rule_config = config.and_then(|c| c.rules.get(rule.name()));
+                if rule_config.map(|rc| rc.is_enabled()).unwrap_or(true) {
+                    Some((rule, rule_config))
+                } else {
+                    None
+                }
             })
-            .flat_map(|rule| rule.check(ctx))
+            .flat_map(|(rule, rule_config)| rule.check(ctx, rule_config))
             .collect()
     }
 
     /// Apply fixes from all fixable rules
     pub fn fix(&self, content: &str, config: Option<&LanguageConfig>) -> Result<String> {
         let mut result = content.to_string();
+        let mut iterations = 0;
+        const MAX_ITERATIONS: usize = 10;
 
-        // Apply trailing spaces fix
-        if is_rule_enabled(config, "trailing-spaces") {
-            result = trailing_spaces::fix_trailing_spaces(&result);
-        }
+        loop {
+            let ctx = RuleContext::new(&result);
+            let diagnostics = self.check(&ctx, config);
+            
+            // Find the first diagnostic that has a fix
+            let fix = diagnostics.iter().find_map(|d| d.fix.as_ref());
 
-        // Apply new line at end fix
-        if is_rule_enabled(config, "new-line-at-end-of-file") {
-            result = new_line_at_end::fix_new_line_at_end(&result);
-        }
-
-        // Apply empty lines fix
-        if is_rule_enabled(config, "empty-lines") {
-            let max = get_rule_option(config, "empty-lines", "max").unwrap_or(2);
-            result = empty_lines::fix_empty_lines(&result, max);
-        }
-
-        // Apply document start fix
-        if is_rule_enabled_explicit(config, "document-start") {
-            result = document_markers::fix_document_start(&result);
-        }
-
-        // Apply document end fix
-        if is_rule_enabled_explicit(config, "document-end") {
-            result = document_markers::fix_document_end(&result);
+            if let Some(fix) = fix {
+                let start_offset = ctx.offset(fix.start).context("Invalid fix start location")?;
+                let end_offset = ctx.offset(fix.end).context("Invalid fix end location")?;
+                
+                let mut new_content = String::with_capacity(result.len() + fix.replacement.len());
+                new_content.push_str(&result[..start_offset]);
+                new_content.push_str(&fix.replacement);
+                new_content.push_str(&result[end_offset..]);
+                
+                result = new_content;
+                iterations += 1;
+                
+                if iterations >= MAX_ITERATIONS {
+                    break;
+                }
+            } else {
+                // No more fixes to apply
+                break;
+            }
         }
 
         Ok(result)
@@ -120,7 +126,7 @@ impl Default for RuleSet {
             Box::new(DocumentStart),
             Box::new(DocumentEnd),
             Box::new(EmptyLines::default()),
-            Box::new(KeyDuplicates),
+            Box::new(KeyDuplicates::default()),
             Box::new(Braces::default()),
             Box::new(Brackets::default()),
             Box::new(Colons::default()),

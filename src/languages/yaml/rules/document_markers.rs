@@ -15,7 +15,7 @@ impl Rule for DocumentStart {
         "Require document start marker (---)"
     }
 
-    fn check(&self, ctx: &RuleContext) -> Vec<Diagnostic> {
+    fn check(&self, ctx: &RuleContext, _config: Option<&crate::config::RuleConfig>) -> Vec<Diagnostic> {
         if ctx.content.is_empty() {
             return vec![];
         }
@@ -66,7 +66,7 @@ impl Rule for DocumentEnd {
         "Require document end marker (...)"
     }
 
-    fn check(&self, ctx: &RuleContext) -> Vec<Diagnostic> {
+    fn check(&self, ctx: &RuleContext, _config: Option<&crate::config::RuleConfig>) -> Vec<Diagnostic> {
         if ctx.content.is_empty() {
             return vec![];
         }
@@ -155,7 +155,7 @@ mod tests {
     fn test_missing_document_start() {
         let content = "key: value\n";
         let ctx = RuleContext::new(content);
-        let diagnostics = DocumentStart.check(&ctx);
+        let diagnostics = DocumentStart.check(&ctx, None);
 
         assert_eq!(diagnostics.len(), 1);
     }
@@ -164,7 +164,7 @@ mod tests {
     fn test_has_document_start() {
         let content = "---\nkey: value\n";
         let ctx = RuleContext::new(content);
-        let diagnostics = DocumentStart.check(&ctx);
+        let diagnostics = DocumentStart.check(&ctx, None);
 
         assert!(diagnostics.is_empty());
     }

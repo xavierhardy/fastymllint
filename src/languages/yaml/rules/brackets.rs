@@ -1,13 +1,13 @@
-use crate::diagnostic::{Diagnostic, Location, Severity};
+use crate::diagnostic::{Diagnostic, Fix, Location};
 use crate::rule::{Rule, RuleContext};
 
 pub struct Brackets {
-    min_spaces_inside: usize,
-    max_spaces_inside: usize,
-    min_spaces_inside_empty: Option<usize>,
-    max_spaces_inside_empty: Option<usize>,
-    forbid: bool,
-    forbid_non_empty: bool,
+    pub min_spaces_inside: usize,
+    pub max_spaces_inside: usize,
+    pub min_spaces_inside_empty: Option<usize>,
+    pub max_spaces_inside_empty: Option<usize>,
+    pub forbid: bool,
+    pub forbid_non_empty: bool,
 }
 
 impl Default for Brackets {
@@ -29,91 +29,172 @@ impl Rule for Brackets {
     }
 
     fn description(&self) -> &'static str {
-        "Enforce consistant spacing inside brackets"
+        "Enforce consistent spacing inside brackets"
     }
 
-    fn check(&self, ctx: &RuleContext) -> Vec<Diagnostic> {
+    fn check(&self, ctx: &RuleContext, config: Option<&crate::config::RuleConfig>) -> Vec<Diagnostic> {
+        let min_spaces_inside = config.and_then(|c| c.get_option("min-spaces-inside")).unwrap_or(self.min_spaces_inside);
+        let max_spaces_inside = config.and_then(|c| c.get_option("max-spaces-inside")).unwrap_or(self.max_spaces_inside);
+        let min_spaces_inside_empty = config.and_then(|c| c.get_option("min-spaces-inside-empty")).or(self.min_spaces_inside_empty);
+        let max_spaces_inside_empty = config.and_then(|c| c.get_option("max-spaces-inside-empty")).or(self.max_spaces_inside_empty);
+        let forbid = config.and_then(|c| c.get_option("forbid")).unwrap_or(self.forbid);
+        let forbid_non_empty = config.and_then(|c| c.get_option("forbid-non-empty")).unwrap_or(self.forbid_non_empty);
+
         let mut diagnostics = Vec::new();
-        let content = &ctx.content;
 
-        for (line_idx, line) in content.lines().enumerate() {
+        for (idx, line) in ctx.lines.iter().enumerate() {
+            let line_num = idx + 1;
+            let mut in_quote = false;
+            let mut quote_char = ' ';
+            let chars: Vec<(usize, char)> = line.char_indices().collect();
+            
             let mut i = 0;
-            while i < line.len() {
-                if let Some(c) = line[i..].chars().next() {
-                    if c == '[' {
-                        if self.forbid {
-                            diagnostics.push(Diagnostic {
-                                severity: Severity::Error,
-                                message: "flow sequences are forbidden".to_string(),
-                                location: Location {
-                                    line: line_idx + 1,
-                                    column: i + 1,
-                                },
-                                end_location: Some(Location {
-                                    line: line_idx + 1,
-                                    column: i + 1 + c.len_utf8(),
-                                }),
-                                fix: None,
-                                rule: self.name().to_string(),
-                            });
-                        }
+            while i < chars.len() {
+                let (pos, c) = chars[i];
+                match c {
+                    '"' | '\'' if !in_quote => {
+                        in_quote = true;
+                        quote_char = c;
+                    }
+                    c if c == quote_char && in_quote => {
+                        in_quote = false;
+                    }
+                    '[' if !in_quote => {
+                        if forbid {
+                            diagnostics.push(Diagnostic::error(
+                                self.name(),
+                                "flow sequences are forbidden",
+                                Location::new(line_num, pos + 1),
+                            ));
+                        } else {
+                            // Check for empty brackets
+                            let mut j = i + 1;
+                            let mut spaces_after = 0;
+                            while j < chars.len() && chars[j].1 == ' ' {
+                                spaces_after += 1;
+                                j += 1;
+                            }
 
-                        if !self.forbid {
-                            let rest_of_line = &line[i + c.len_utf8()..];
-                            if let Some(next_char) = rest_of_line.chars().next() {
-                                if next_char != ' ' && self.min_spaces_inside > 0 {
-                                    if next_char == ']' {
-                                        if let Some(min_empty) = self.min_spaces_inside_empty {
-                                            if min_empty > 0 {
-                                                diagnostics.push(Diagnostic {
-                                                    severity: Severity::Error,
-                                                    message: "too few spaces inside empty brackets"
-                                                        .to_string(),
-                                                    location: Location {
-                                                        line: line_idx + 1,
-                                                        column: i + 1,
-                                                    },
-                                                    end_location: Some(Location {
-                                                        line: line_idx + 1,
-                                                        column: i + 1 + c.len_utf8(),
-                                                    }),
-                                                    fix: None,
-                                                    rule: self.name().to_string(),
-                                                });
-                                            }
-                                        }
-                                    } else {
-                                        diagnostics.push(Diagnostic {
-                                            severity: Severity::Error,
-                                            message: "too few spaces inside brackets".to_string(),
-                                            location: Location {
-                                                line: line_idx + 1,
-                                                column: i + 1,
-                                            },
-                                            end_location: Some(Location {
-                                                line: line_idx + 1,
-                                                column: i + 1 + c.len_utf8(),
-                                            }),
-                                            fix: None,
-                                            rule: self.name().to_string(),
-                                        });
+                            if j < chars.len() && chars[j].1 == ']' {
+                                // Empty brackets
+                                if forbid_non_empty {
+                                    // OK, only non-empty forbidden
+                                } else {
+                                    let min_empty = min_spaces_inside_empty.unwrap_or(min_spaces_inside);
+                                    let max_empty = max_spaces_inside_empty.unwrap_or(max_spaces_inside);
+
+                                    if spaces_after < min_empty {
+                                        let diag = Diagnostic::error(
+                                            self.name(),
+                                            "too few spaces inside empty brackets",
+                                            Location::new(line_num, pos + 1),
+                                        );
+                                        diagnostics.push(diag.with_fix(Fix::insert(
+                                            "add spaces inside empty brackets",
+                                            " ".repeat(min_empty - spaces_after),
+                                            Location::new(line_num, pos + 2),
+                                        )));
+                                    } else if spaces_after > max_empty {
+                                        let diag = Diagnostic::error(
+                                            self.name(),
+                                            "too many spaces inside empty brackets",
+                                            Location::new(line_num, pos + 2),
+                                        );
+                                        diagnostics.push(diag.with_fix(Fix::delete(
+                                            "remove extra spaces inside empty brackets",
+                                            Location::new(line_num, pos + 2),
+                                            Location::new(line_num, pos + 2 + (spaces_after - max_empty)),
+                                        )));
                                     }
+                                }
+                                i = j; // Skip to ]
+                            } else {
+                                // Non-empty brackets
+                                if forbid_non_empty {
+                                    diagnostics.push(Diagnostic::error(
+                                        self.name(),
+                                        "non-empty flow sequences are forbidden",
+                                        Location::new(line_num, pos + 1),
+                                    ));
+                                }
+
+                                if spaces_after < min_spaces_inside {
+                                    let diag = Diagnostic::error(
+                                        self.name(),
+                                        "too few spaces inside brackets",
+                                        Location::new(line_num, pos + 1),
+                                    );
+                                    diagnostics.push(diag.with_fix(Fix::insert(
+                                        "add spaces inside brackets",
+                                        " ".repeat(min_spaces_inside - spaces_after),
+                                        Location::new(line_num, pos + 2),
+                                    )));
+                                } else if spaces_after > max_spaces_inside {
+                                    let diag = Diagnostic::error(
+                                        self.name(),
+                                        "too many spaces inside brackets",
+                                        Location::new(line_num, pos + 2),
+                                    );
+                                    diagnostics.push(diag.with_fix(Fix::delete(
+                                        "remove extra spaces inside brackets",
+                                        Location::new(line_num, pos + 2),
+                                        Location::new(line_num, pos + 2 + (spaces_after - max_spaces_inside)),
+                                    )));
                                 }
                             }
                         }
                     }
-                    i += c.len_utf8();
-                } else {
-                    break;
+                    ']' if !in_quote => {
+                        let mut j = pos;
+                        let mut spaces_before = 0;
+                        while j > 0 && line.as_bytes()[j-1] == b' ' {
+                            spaces_before += 1;
+                            j -= 1;
+                        }
+                        
+                        let mut is_empty = false;
+                        if j > 0 && line.as_bytes()[j-1] == b'[' {
+                            is_empty = true;
+                        }
+
+                        if !is_empty && !forbid && !forbid_non_empty {
+                            if spaces_before < min_spaces_inside {
+                                let diag = Diagnostic::error(
+                                    self.name(),
+                                    "too few spaces inside brackets",
+                                    Location::new(line_num, pos + 1),
+                                );
+                                diagnostics.push(diag.with_fix(Fix::insert(
+                                    "add spaces inside brackets",
+                                    " ".repeat(min_spaces_inside - spaces_before),
+                                    Location::new(line_num, pos + 1),
+                                )));
+                            } else if spaces_before > max_spaces_inside {
+                                let diag = Diagnostic::error(
+                                    self.name(),
+                                    "too many spaces inside brackets",
+                                    Location::new(line_num, pos + 1 - (spaces_before - max_spaces_inside)),
+                                );
+                                diagnostics.push(diag.with_fix(Fix::delete(
+                                    "remove extra spaces inside brackets",
+                                    Location::new(line_num, pos + 1 - (spaces_before - max_spaces_inside)),
+                                    Location::new(line_num, pos + 1),
+                                )));
+                            }
+                        }
+                    }
+                    _ => {}
                 }
+                i += 1;
             }
         }
 
+        diagnostics.sort_by_key(|d| (d.location.line, d.location.column));
         diagnostics
     }
 
     fn is_fixable(&self) -> bool {
-        false
+        true
     }
 }
 
@@ -127,9 +208,9 @@ mod tests {
             forbid: true,
             ..Default::default()
         };
-        let content = "[item]";
+        let content = "[item1, item2]";
         let ctx = RuleContext::new(content);
-        let diagnostics = rule.check(&ctx);
+        let diagnostics = rule.check(&ctx, None);
         assert_eq!(diagnostics.len(), 1);
         assert_eq!(diagnostics[0].message, "flow sequences are forbidden");
     }
@@ -140,10 +221,10 @@ mod tests {
             min_spaces_inside: 1,
             ..Default::default()
         };
-        let content = "[item]";
+        let content = "[item1, item2]";
         let ctx = RuleContext::new(content);
-        let diagnostics = rule.check(&ctx);
-        assert_eq!(diagnostics.len(), 1);
+        let diagnostics = rule.check(&ctx, None);
+        assert_eq!(diagnostics.len(), 2);
         assert_eq!(diagnostics[0].message, "too few spaces inside brackets");
     }
 }
