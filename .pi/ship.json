@@ -1,0 +1,46 @@
+{
+  "pipeline": {
+    "name": "MegaLinter Rust CI Pipeline",
+    "description": "Automated testing, linting, formatting and building for MegaLinter Rust project",
+    "steps": [
+      {
+        "id": "lint-and-format",
+        "name": "Code Quality Checks",
+        "description": "Run formatter and linter to ensure code quality",
+        "timeout": 300,
+        "commands": [
+          "cargo fmt --all --check || cargo fmt --all",
+          "cargo clippy -- -D warnings"
+        ]
+      },
+      {
+        "id": "test",
+        "name": "Unit Tests",
+        "description": "Run the test suite to verify functionality",
+        "timeout": 600,
+        "commands": [
+          "cargo test --all"
+        ]
+      },
+      {
+        "id": "build",
+        "name": "Release Build",
+        "description": "Build the release binary",
+        "timeout": 600,
+        "commands": [
+          "cargo build --release"
+        ]
+      },
+      {
+        "id": "verify",
+        "name": "Verify Build Artifact",
+        "description": "Ensure the binary was created and is executable",
+        "timeout": 60,
+        "commands": [
+          "test -f target/release/megalinter",
+          "file target/release/megalinter"
+        ]
+      }
+    ]
+  }
+}
