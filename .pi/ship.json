@@ -4,41 +4,43 @@
     "description": "Automated testing, linting, formatting and building for MegaLinter Rust project",
     "steps": [
       {
-        "id": "lint-and-format",
-        "name": "Code Quality Checks",
-        "description": "Run formatter and linter to ensure code quality",
-        "timeout": 300,
+        "id": "format",
+        "name": "Code Formatting",
+        "description": "Format code with cargo fmt",
         "commands": [
-          "cargo fmt --all --check || cargo fmt --all",
+          "cargo fmt --all"
+        ]
+      },
+      {
+        "id": "lint",
+        "name": "Code Linting",
+        "description": "Lint code with cargo clippy",
+        "commands": [
           "cargo clippy -- -D warnings"
         ]
       },
       {
         "id": "test",
         "name": "Unit Tests",
-        "description": "Run the test suite to verify functionality",
-        "timeout": 600,
+        "description": "Run test suite",
         "commands": [
           "cargo test --all"
         ]
       },
       {
-        "id": "build",
-        "name": "Release Build",
-        "description": "Build the release binary",
-        "timeout": 600,
+        "id": "precommit",
+        "name": "Pre-commit Build",
+        "description": "Build release binary",
         "commands": [
           "cargo build --release"
         ]
       },
       {
-        "id": "verify",
-        "name": "Verify Build Artifact",
-        "description": "Ensure the binary was created and is executable",
-        "timeout": 60,
+        "id": "oracle",
+        "name": "Verification",
+        "description": "Verify build artifact",
         "commands": [
-          "test -f target/release/megalinter",
-          "file target/release/megalinter"
+          "test -f target/release/megalinter && file target/release/megalinter"
         ]
       }
     ]
