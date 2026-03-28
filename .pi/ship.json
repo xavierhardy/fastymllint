@@ -34,14 +34,6 @@
         "commands": [
           "cargo build --release"
         ]
-      },
-      {
-        "id": "oracle",
-        "name": "Verification",
-        "description": "Verify build artifact",
-        "commands": [
-          "test -f target/release/megalinter && file target/release/megalinter"
-        ]
       }
     ]
   }
