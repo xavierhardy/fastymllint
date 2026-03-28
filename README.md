@@ -1,3 +1,5 @@
+hello
+
 # MegaLinter
 
 A high-performance, multi-language linter written in Rust.
