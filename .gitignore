@@ -24,3 +24,6 @@ Thumbs.db
 *.bak
 *~
 .history/
+.venv*/
+*.pyc
+__pycache__/
