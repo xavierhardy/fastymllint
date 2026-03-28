@@ -191,17 +191,19 @@ impl Rule for QuotedStrings {
                             }
                         }
                         QuoteType::Consistent => {
-                            if detected_quote_type.is_none() {
+                            if let Some(expected_quote) = detected_quote_type {
+                                if expected_quote != current_quote {
+                                    return Some(Diagnostic::error(
+                                        self.name(),
+                                        format!(
+                                            "inconsistent quote type: expected '{}'",
+                                            expected_quote
+                                        ),
+                                        Location::new(line_num, line.find(s).unwrap_or(0) + 1),
+                                    ));
+                                }
+                            } else {
                                 detected_quote_type = Some(current_quote);
-                            } else if detected_quote_type != Some(current_quote) {
-                                return Some(Diagnostic::error(
-                                    self.name(),
-                                    format!(
-                                        "inconsistent quote type: expected '{}'",
-                                        detected_quote_type.unwrap()
-                                    ),
-                                    Location::new(line_num, line.find(s).unwrap_or(0) + 1),
-                                ));
                             }
                         }
                         QuoteType::Any => {}
