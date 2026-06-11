@@ -1,0 +1,15 @@
+---
+# yamllint disable rule:line-length
+this_line_is_very_long_and_would_normally_fail_the_line_length_check: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+# yamllint enable rule:line-length
+also_long_but_now_checked: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+ok: 1   # yamllint disable-line rule:comments
+bad: 1  #missing space
+# yamllint disable-line rule:trailing-spaces
+trailing: spaces   
+trailing2: spaces   
+# yamllint disable
+anything: goes   	
+key:   value
+# yamllint enable
+checked: again   

@@ -1,0 +1,11 @@
+---
+top:
+   three: spaces
+   nested:
+       seven: total
+list:
+  - one
+   - two
+mapping:
+ a: 1
+  b: 2

@@ -1,0 +1,3 @@
+# yamllint disable-file
+this: is   completely:  broken   
+   and: not: checked

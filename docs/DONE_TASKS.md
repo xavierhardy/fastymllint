@@ -62,4 +62,10 @@
 - 2026-02-17: Completed YAML rule `octal-values` with configuration.
 - 2026-02-17: Completed YAML rule `quoted-strings` with configuration and auto-fix.
 - 2026-02-17: Completed YAML rule `trailing-spaces` with configuration and auto-fix.
-- 2026-02-17: Completed YAML rule `truthy` with configuration.
+- 2026-02-17: Completed YAML rule `truthy` with configuration.- 2026-06-11: Renamed project to `fastymllint`; dropped the multi-language framework (YAML only).
+- 2026-06-11: Ported PyYAML's scanner and parser to Rust with exact token marks; verified token-by-token against PyYAML.
+- 2026-06-11: Reimplemented all 23 rules as faithful yamllint ports (byte-identical messages, positions, ordering).
+- 2026-06-11: Implemented yamllint-compatible config (extends/levels/ignore/yaml-files/inline directives) and CLI.
+- 2026-06-11: Added output formats text/json/yamllint, parallel linting (rayon), exit-code compatibility.
+- 2026-06-11: Added auto-fix (safe/unsafe) and auto-format with --dry-run diffs (exit code 3) and semantics-preservation tests.
+- 2026-06-11: Added side-by-side parity test suite vs yamllint (208+ comparisons) and bench harness (3-10x faster).

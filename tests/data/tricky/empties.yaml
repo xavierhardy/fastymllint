@@ -1,0 +1,10 @@
+---
+empty_block:
+empty_after_colon: 
+flow_empty: {a: , b: 1, c: }
+seq_empties:
+  -
+  - filled
+  -
+nested:
+  deep:

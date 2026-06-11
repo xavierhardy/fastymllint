@@ -1,129 +1,108 @@
-//! Parallel lint runner
+//! File discovery and parallel linting.
 
-use anyhow::{Context, Result};
-use rayon::prelude::*;
-use std::fs;
 use std::path::{Path, PathBuf};
-use walkdir::WalkDir;
 
-use crate::languages::LanguageRegistry;
-use crate::{Config, Diagnostic};
+use rayon::prelude::*;
 
-/// Result of linting a single file
-#[derive(Debug)]
+use crate::config::YamlLintConfig;
+use crate::decoder::auto_decode;
+use crate::linter::{self, LintProblem};
+
+/// Find files to lint:
+/// directories are walked recursively (only files matching `yaml-files` and
+/// not ignored), explicit files are always returned.
+pub fn find_files_recursively(items: &[PathBuf], conf: &YamlLintConfig) -> Vec<PathBuf> {
+    let mut files = Vec::new();
+    for item in items {
+        if item.is_dir() {
+            let walker = walkdir::WalkDir::new(item)
+                .sort_by_file_name()
+                .into_iter()
+                .filter_map(|e| e.ok())
+                .filter(|e| e.file_type().is_file());
+            for entry in walker {
+                let path = entry.path().to_path_buf();
+                let path_str = path.to_string_lossy();
+                if conf.is_yaml_file(&path_str) && !conf.is_file_ignored(&path_str) {
+                    files.push(path);
+                }
+            }
+        } else {
+            files.push(item.clone());
+        }
+    }
+    files
+}
+
 pub struct FileResult {
-    /// Path to the file
     pub path: PathBuf,
-    /// Diagnostics found in the file
-    pub diagnostics: Vec<Diagnostic>,
-    /// Error if the file couldn't be processed
+    /// Path as displayed/matched (leading `./` stripped).
+    pub display_path: String,
+    pub problems: Vec<LintProblem>,
+    /// I/O or decoding error, if the file could not be processed.
     pub error: Option<String>,
 }
 
-impl FileResult {
-    pub fn success(path: PathBuf, diagnostics: Vec<Diagnostic>) -> Self {
-        Self {
-            path,
-            diagnostics,
-            error: None,
-        }
-    }
+pub fn lint_one(path: &Path, conf: &YamlLintConfig) -> FileResult {
+    let display_path = {
+        let s = path.to_string_lossy().to_string();
+        s.strip_prefix("./").map(str::to_string).unwrap_or(s)
+    };
 
-    pub fn error(path: PathBuf, error: impl Into<String>) -> Self {
-        Self {
-            path,
-            diagnostics: Vec::new(),
-            error: Some(error.into()),
+    let data = match std::fs::read(path) {
+        Ok(d) => d,
+        Err(e) => {
+            return FileResult {
+                path: path.to_path_buf(),
+                display_path,
+                problems: Vec::new(),
+                error: Some(format!("[Errno 2] {e}: '{}'", path.display())),
+            };
         }
-    }
+    };
+    let content = match auto_decode(&data) {
+        Ok(c) => c,
+        Err(e) => {
+            return FileResult {
+                path: path.to_path_buf(),
+                display_path,
+                problems: Vec::new(),
+                error: Some(format!("{}: {e}", path.display())),
+            };
+        }
+    };
 
-    pub fn has_errors(&self) -> bool {
-        self.error.is_some() || !self.diagnostics.is_empty()
+    let problems = linter::run(&content, conf, Some(&display_path));
+    FileResult {
+        path: path.to_path_buf(),
+        display_path,
+        problems,
+        error: None,
     }
 }
 
-/// The main lint runner
-pub struct LintRunner {
-    config: Config,
-    registry: LanguageRegistry,
-}
+/// Lint files in parallel, preserving input order in the result.
+pub fn lint_files(
+    files: &[PathBuf],
+    conf: &YamlLintConfig,
+    jobs: Option<usize>,
+) -> Vec<FileResult> {
+    let run = || {
+        files
+            .par_iter()
+            .map(|path| lint_one(path, conf))
+            .collect::<Vec<_>>()
+    };
 
-impl LintRunner {
-    /// Create a new runner with the given configuration
-    pub fn new(config: Config) -> Self {
-        Self {
-            config,
-            registry: LanguageRegistry::new(),
-        }
-    }
-
-    /// Discover files to lint in the given directory
-    pub fn discover_files(&self, root: &Path) -> Vec<PathBuf> {
-        WalkDir::new(root)
-            .into_iter()
-            .filter_map(|e| e.ok())
-            .filter(|e| e.file_type().is_file())
-            .filter(|e| self.registry.detect(e.path()).is_some())
-            .map(|e| e.path().to_path_buf())
-            .collect()
-    }
-
-    /// Lint a single file
-    pub fn lint_file(&self, path: &Path) -> FileResult {
-        let lang = match self.registry.detect(path) {
-            Some(l) => l,
-            None => return FileResult::error(path.to_path_buf(), "Unknown file type"),
-        };
-
-        let content = match fs::read_to_string(path) {
-            Ok(c) => c,
-            Err(e) => return FileResult::error(path.to_path_buf(), e.to_string()),
-        };
-
-        let diagnostics = lang.lint(&content, &self.config);
-        FileResult::success(path.to_path_buf(), diagnostics)
-    }
-
-    /// Lint multiple files in parallel
-    pub fn lint_files(&self, files: &[PathBuf]) -> Vec<FileResult> {
-        files.par_iter().map(|path| self.lint_file(path)).collect()
-    }
-
-    /// Lint all files in the root directory
-    pub fn lint_all(&self) -> Vec<FileResult> {
-        let files = self.discover_files(&self.config.root);
-        self.lint_files(&files)
-    }
-
-    /// Fix a single file
-    pub fn fix_file(&self, path: &Path) -> Result<bool> {
-        let lang = self.registry.detect(path).context("Unknown file type")?;
-
-        let content = fs::read_to_string(path)
-            .with_context(|| format!("Failed to read file: {}", path.display()))?;
-
-        let fixed = lang.fix(&content, &self.config)?;
-
-        if fixed != content {
-            fs::write(path, &fixed)
-                .with_context(|| format!("Failed to write file: {}", path.display()))?;
-            Ok(true)
-        } else {
-            Ok(false)
-        }
-    }
-
-    /// Fix all files in the root directory
-    pub fn fix_all(&self) -> Result<Vec<PathBuf>> {
-        let files = self.discover_files(&self.config.root);
-        let mut fixed_files = Vec::new();
-
-        for path in files {
-            if self.fix_file(&path)? {
-                fixed_files.push(path);
-            }
-        }
-
-        Ok(fixed_files)
+    match jobs {
+        // No point spinning up a thread pool for a single file.
+        _ if files.len() <= 1 => files.iter().map(|path| lint_one(path, conf)).collect(),
+        Some(1) => files.iter().map(|path| lint_one(path, conf)).collect(),
+        Some(n) => rayon::ThreadPoolBuilder::new()
+            .num_threads(n)
+            .build()
+            .map(|pool| pool.install(run))
+            .unwrap_or_else(|_| run()),
+        None => run(),
     }
 }

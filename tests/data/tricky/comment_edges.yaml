@@ -1,0 +1,14 @@
+#!/usr/bin/env cat
+# normal comment
+#bad comment
+## doc comment
+#!shebang-like but not line 1
+key: value  # good inline
+key2: value # one space
+key3: value  #no space
+    # over-indented comment
+next: line
+  # comment between
+last: one
+#
+## empty comments

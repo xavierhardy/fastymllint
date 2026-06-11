@@ -1,0 +1,10 @@
+dash-: ok
+colon:in:middle: value
+question?mark: value
+url: http://example.com/a?b=c#frag
+version: 1.2.3-alpha+build
+time: 12:34:56
+sexagesimal: 190:20:30
+percent: 50%
+at: user@host
+backtick: a`b

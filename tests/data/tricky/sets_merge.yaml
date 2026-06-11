@@ -1,0 +1,16 @@
+---
+base: &a
+  x: 1
+merged:
+  <<: *a
+  <<: *a
+  y: 2
+dupes:
+  k: 1
+  k: 2
+  k: 3
+flow_dupe: {a: 1, a: 2}
+set:
+  ? key1
+  ? key2
+  ? key1

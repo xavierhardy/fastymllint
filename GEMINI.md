@@ -1,4 +1,4 @@
-# AI Instructions for MegaLinter
+# AI Instructions for fastymllint
 
 To ensure consistency and quality in this project, all AI agents MUST follow these instructions:
 

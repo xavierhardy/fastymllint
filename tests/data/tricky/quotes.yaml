@@ -1,0 +1,11 @@
+single: 'it''s quoted'
+double: "escaped \" quote and \\ backslash and \n newline"
+unicode: "é\U0001F600\x41"
+multiline_single: 'line one
+  line two'
+multiline_double: "fold
+  here"
+empty_single: ''
+empty_double: ""
+plain with spaces: just a plain scalar
+weird: @cant-start  

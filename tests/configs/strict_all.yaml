@@ -1,0 +1,26 @@
+extends: default
+rules:
+  document-end: enable
+  empty-values: enable
+  float-values:
+    require-numeral-before-decimal: true
+    forbid-scientific-notation: true
+    forbid-nan: true
+    forbid-inf: true
+  key-ordering: enable
+  octal-values: enable
+  quoted-strings:
+    quote-type: any
+    required: only-when-needed
+  anchors:
+    forbid-undeclared-aliases: true
+    forbid-duplicated-anchors: true
+    forbid-unused-anchors: true
+  indentation:
+    spaces: 2
+    indent-sequences: true
+    check-multi-line-strings: true
+  truthy:
+    allowed-values: ['true', 'false', 'on']
+  key-duplicates:
+    forbid-duplicated-merge-keys: true

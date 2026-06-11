@@ -1,7 +1,7 @@
 {
   "pipeline": {
-    "name": "MegaLinter Rust CI Pipeline",
-    "description": "Automated testing, linting, formatting and building for MegaLinter Rust project",
+    "name": "fastymllint Rust CI Pipeline",
+    "description": "Automated testing, linting, formatting and building for the fastymllint Rust project",
     "steps": [
       {
         "id": "format",

@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-echo "Building MegaLinter..."
+echo "Building fastymllint..."
 cargo build --release
 
-echo "Build complete. Executable is at target/release/megalinter"
+echo "Build complete. Executable is at target/release/fastymllint"

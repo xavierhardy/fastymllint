@@ -1,0 +1,15 @@
+%YAML 1.1
+%TAG ! tag:example.com,2014:
+---
+base: &base
+  name: base
+derived:
+  <<: *base
+  extra: !!str typed
+explicit: !custom value
+verbatim: !<tag:example.com,2014:foo> bar
+binary: !!binary "R0lGODlh"
+num: !!int 42
+---
+second: doc
+...

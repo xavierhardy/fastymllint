@@ -1,0 +1,11 @@
+a: {b: [1, 2, {c: d}], e: {f: [g, h]}}
+matrix: [[1, 2], [3, 4]]
+inline: { spaced : value , other : [ 1 , 2 ] }
+empty_map: {}
+empty_seq: []
+nested: [{}, [], {x: []}]
+multiline_flow: [
+  1,
+  2,
+  3
+]

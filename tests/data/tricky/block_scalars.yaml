@@ -1,0 +1,21 @@
+literal: |
+  line 1
+   line 2 indented
+
+  line 4
+folded: >
+  some long
+  folded text
+
+  new paragraph
+keep: |+
+  kept
+
+
+strip: |-
+  stripped
+
+indented: |2
+    explicit indent
+clip_at_end: |
+  text

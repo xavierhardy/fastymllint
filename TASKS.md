@@ -1,90 +1,27 @@
 # Tasks
 
-- [x] Create unit test with at least 80% code coverage of current code, enforce it. (All YAML rules now have comprehensive unit tests, and the system compiles and passes all checks.)
+## Done (see docs/DONE_TASKS.md for history)
 
-## YAML Rules
+- [x] Rewrite as **fastymllint**: a drop-in yamllint replacement (YAML only)
+- [x] Port PyYAML's scanner/parser to Rust with exact token marks
+- [x] Port all 23 yamllint rules with byte-identical messages
+- [x] yamllint-compatible configuration (extends, levels, ignore, yaml-files,
+      inline directives, rule options)
+- [x] Output formats: text (default), json, yamllint (exact standard format)
+- [x] Parallel file processing (rayon, `-j/--jobs`)
+- [x] Auto-fix (`fix`, `fix --unsafe`) and auto-format (`format`) with
+      `--dry-run` diffs and dedicated exit code
+- [x] Side-by-side parity tests against yamllint + token-level differential
+      tests against PyYAML
+- [x] Benchmark harness (`bench/bench.sh`)
 
-- [x] Complete YAML rule: `anchors`
-- [x] Implement configuration for YAML rule: `anchors`
-- [ ] Implement auto-fix for YAML rule: `anchors` (Not applicable/unsafe)
-- [x] Complete YAML rule: `braces`
-- [x] Implement configuration for YAML rule: `braces`
-- [x] Implement auto-fix for YAML rule: `braces`
-- [x] Complete YAML rule: `brackets`
-- [x] Implement configuration for YAML rule: `brackets`
-- [x] Implement auto-fix for YAML rule: `brackets`
-- [x] Complete YAML rule: `colons`
-- [x] Implement configuration for YAML rule: `colons`
-- [x] Implement auto-fix for YAML rule: `colons`
-- [x] Complete YAML rule: `commas`
-- [x] Implement configuration for YAML rule: `commas`
-- [x] Implement auto-fix for YAML rule: `commas`
-- [x] Complete YAML rule: `comments`
-- [x] Implement configuration for YAML rule: `comments`
-- [x] Implement auto-fix for YAML rule: `comments`
-- [x] Complete YAML rule: `comments-indentation`
-- [x] Implement configuration for YAML rule: `comments-indentation`
-- [x] Implement auto-fix for YAML rule: `comments-indentation`
-- [x] Complete YAML rule: `document-start`
-- [x] Implement configuration for YAML rule: `document-start`
-- [x] Implement auto-fix for YAML rule: `document-start`
-- [x] Complete YAML rule: `document-end`
-- [x] Implement configuration for YAML rule: `document-end`
-- [x] Implement auto-fix for YAML rule: `document-end`
-- [x] Complete YAML rule: `empty-lines`
-- [x] Implement configuration for YAML rule: `empty-lines`
-- [x] Implement auto-fix for YAML rule: `empty-lines`
-- [x] Complete YAML rule: `empty-values`
-- [x] Implement configuration for YAML rule: `empty-values`
-- [x] Implement auto-fix for YAML rule: `empty-values` (Not applicable)
-- [x] Complete YAML rule: `float-values`
-- [x] Implement configuration for YAML rule: `float-values`
-- [x] Implement auto-fix for YAML rule: `float-values` (Not applicable)
-- [x] Complete YAML rule: `hyphens`
-- [x] Implement configuration for YAML rule: `hyphens`
-- [x] Implement auto-fix for YAML rule: `hyphens`
-- [x] Complete YAML rule: `indentation`
-- [x] Implement configuration for YAML rule: `indentation`
-- [x] Implement auto-fix for YAML rule: `indentation` (Not applicable)
-- [x] Complete YAML rule: `key-duplicates`
-- [x] Implement configuration for YAML rule: `key-duplicates`
-- [x] Implement auto-fix for YAML rule: `key-duplicates` (Not applicable)
-- [x] Complete YAML rule: `key-ordering`
-- [x] Implement configuration for YAML rule: `key-ordering`
-- [x] Implement auto-fix for YAML rule: `key-ordering` (Not applicable)
-- [x] Complete YAML rule: `line-length`
-- [x] Implement configuration for YAML rule: `line-length`
-- [x] Implement auto-fix for YAML rule: `line-length` (Not applicable)
-- [x] Complete YAML rule: `new-line-at-end-of-file`
-- [x] Implement configuration for YAML rule: `new-line-at-end-of-file`
-- [x] Implement auto-fix for YAML rule: `new-line-at-end-of-file`
-- [x] Complete YAML rule: `new-lines`
-- [x] Implement configuration for YAML rule: `new-lines`
-- [x] Implement auto-fix for YAML rule: `new-lines`
-- [x] Complete YAML rule: `octal-values`
-- [x] Implement configuration for YAML rule: `octal-values`
-- [x] Implement auto-fix for YAML rule: `octal-values` (Not applicable)
-- [x] Complete YAML rule: `quoted-strings`
-- [x] Implement configuration for YAML rule: `quoted-strings`
-- [x] Implement auto-fix for YAML rule: `quoted-strings`
-- [x] Complete YAML rule: `trailing-spaces`
-- [x] Implement configuration for YAML rule: `trailing-spaces`
-- [x] Implement auto-fix for YAML rule: `trailing-spaces`
-- [x] Complete YAML rule: `truthy`
-- [x] Implement configuration for YAML rule: `truthy`
-- [x] Implement auto-fix for YAML rule: `truthy` (Not applicable)
+## Backlog
 
-## Core & Other Languages
-
-- [x] Refactor auto-fix system to be more extensible (move logic from `RuleSet` to individual `Rule`s)
-- Implement JSON language support
-- Implement TOML language support
-- Add support for project-wide configuration file (`.megalinter.toml`)
-- Implement more output formats (JSON, SARIF)
-- Add support for inline disabling of rules (e.g., `# megalinter-disable-line`)
-- Improve error messages and diagnostic locations
-- Add comprehensive integration tests
-- Create detailed documentation for each rule
-- Implement a plugin system for custom rules
-- Add support for linting specific Git staged files
-- Improve performance for very large files
+- [ ] Support yamllint's `github`/`colored`/`parsable`/`auto` output format
+      aliases for full CLI flag compatibility
+- [ ] `locale` config option (affects `key-ordering` collation in yamllint)
+- [ ] Fixer for `key-duplicates` (delete duplicate entries; needs block
+      extent analysis)
+- [ ] Smarter `line-length` fixer (folding long scalars where safe)
+- [ ] Publish to crates.io; prebuilt binaries
+- [ ] Reduce token cloning in the linter pipeline (perf headroom)

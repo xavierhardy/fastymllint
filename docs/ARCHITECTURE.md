@@ -1,102 +1,101 @@
-# MegaLinter Architecture
+# fastymllint Architecture
 
-MegaLinter is designed to be a high-performance, extensible, multi-language linter. This document outlines the core architectural components and their interactions.
+fastymllint is a drop-in replacement for yamllint. Output parity is the
+design constraint that shapes everything: yamllint's rules depend on the
+exact token marks (character pointer, line, column) of PyYAML's scanner, so
+fastymllint is built on a faithful Rust port of that scanner rather than an
+off-the-shelf YAML parser.
 
-## Core Concepts
+## Layers
 
-### 1. The `Language` Trait
-The `Language` trait is the primary extension point for adding support for new file types. Each language implementation (e.g., YAML, JSON) must provide:
-- Name and file extensions.
-- Logic for detection.
-- `lint`, `fix`, and `format` methods.
-
-### 2. The `Rule` Trait
-Within a language, individual checks are implemented as `Rule`s. A `Rule`:
-- Has a unique name and description.
-- Takes a `RuleContext` and returns `Diagnostic`s.
-- Can optionally indicate if it's auto-fixable.
-
-### 3. `RuleContext`
-Provides rules with the necessary information to perform checks:
-- Raw file content.
-- Pre-split lines (for line-based rules).
-- File path.
-
-### 4. `Diagnostic`
-Represents a found issue:
-- Rule name.
-- Message.
-- Severity (Error, Warning, Hint).
-- Location (Line, Column).
-- `Fix` information.
-
-### 5. `LintRunner`
-The engine that orchestrates the linting process:
-- Discovers files to lint using `WalkDir`.
-- Detects the appropriate `Language` for each file.
-- Executes linting in parallel using `rayon`.
-- Collects and returns `FileResult`s.
-
-## Project Structure
-
-- `src/main.rs`: CLI entry point, handles command-line arguments and output formatting.
-- `src/lib.rs`: Library entry point, exports core traits and types.
-- `src/language.rs`: Defines the `Language` trait.
-- `src/rule.rs`: Defines the `Rule` trait and `RuleContext`.
-- `src/diagnostic.rs`: Defines `Diagnostic`, `Severity`, and `Location`.
-- `src/runner.rs`: Implements the parallel `LintRunner`.
-- `src/languages/`: Contains language-specific implementations.
-  - `src/languages/mod.rs`: Language registry.
-  - `src/languages/yaml/`: YAML-specific logic and rules.
-
-## Data Flow
-
-1. **Input**: User provides paths via CLI.
-2. **Discovery**: `LintRunner` walks the paths and identifies files supported by registered `Language`s.
-3. **Processing**: For each file, `LintRunner` (in parallel):
-    a. Reads file content.
-    b. Calls `Language::lint`.
-    c. `Language::lint` iterates through its `Rule`s and calls `Rule::check`.
-    d. `Rule`s return `Diagnostic`s.
-4. **Aggregation**: `LintRunner` collects all `FileResult`s.
-5. **Output**: `main.rs` formats and displays the results to the user.
-
-## Testing Strategy
-
-### Unit Tests
-- **Rule Tests**: Each rule should be tested in isolation. Tests should cover both positive cases (valid content) and negative cases (content that should trigger a diagnostic).
-- **Location Verification**: Ensure that diagnostics report the correct line and column numbers.
-- **Fix Verification**: For fixable rules, verify that the `fix` method (or helper function) produces the expected output.
-
-Example rule test (in `tests/yaml_tests.rs`):
-```rust
-#[test]
-fn test_trailing_spaces_detection() {
-    let content = "key: value   \nother: ok\n";
-    let ctx = RuleContext::new(content);
-    let diags = TrailingSpaces.check(&ctx);
-
-    assert_eq!(diags.len(), 1);
-    assert_eq!(diags[0].location.line, 1);
-    assert!(diags[0].message.contains("trailing"));
-}
+```
+src/
+├── pyyaml/            Port of the PyYAML pieces yamllint relies on (MIT)
+│   ├── scanner.rs     Token scanner — exact marks, values, styles, errors
+│   ├── parser.rs      Event parser state machine — syntax errors + events
+│   ├── loader.rs      Safe YAML document loader (used for config files)
+│   ├── value.rs       Plain YAML value tree
+│   ├── resolver.rs    Implicit tag resolution (used by quoted-strings)
+│   ├── tokens.rs      Token types and PyYAML token ids
+│   ├── error.rs       Mark + error types (problem & mark drive messages)
+│   └── pyrepr.rs      Python repr() formatting for error message parity
+├── linter.rs          Lint pipeline: token/comment/line generators,
+│                      inline `# yamllint disable...` directives, syntax
+│                      error merging
+├── rules/             All 23 yamllint rules, one module each, plus
+│                      option parsing/validation and dispatch (mod.rs)
+├── config.rs          Configuration: extends (default/relaxed/file),
+│                      levels, ignore / yaml-files patterns (gitignore
+│                      semantics via the `ignore` crate)
+├── decoder.rs         BOM-based encoding detection (UTF-8/16/32)
+├── runner.rs          File discovery + parallel linting (rayon)
+├── output.rs          text / json / yamllint output formats
+├── fix.rs             Auto-fix & format engine (safe vs unsafe fixes)
+└── main.rs            CLI (lint by default; `fix` / `format` subcommands)
 ```
 
-### Integration Tests
-- **Language Integration**: Test that the `Language` implementation correctly identifies and lints files with the appropriate extensions.
-- **Runner Integration**: Use `tempfile` and `WalkDir` to test the `LintRunner`'s ability to discover and process multiple files in parallel.
-- **CLI Integration**: (Planned) Test the end-to-end flow from the command line interface.
+## The scanner port
 
-### Performance Tests
-- Use large YAML/JSON files to ensure that the linter remains fast and efficient under load.
-- Measure the impact of parallelism with different thread counts (via `RAYON_NUM_THREADS`).
+`src/pyyaml/scanner.rs` implements the same simple-key bookkeeping,
+indentation stack, token queue and mark semantics as PyYAML's scanner. The
+buffer is a `Vec<char>` with a `'\0'` sentinel, exactly like PyYAML's
+reader, so `Mark.pointer` is a character index that matches
+PyYAML's. This is verified by a differential test: `src/bin/dump_tokens.rs`
+and `tests/dump_tokens.py` print canonical token dumps that must be
+identical across the whole test corpus.
 
-## Configuration System
+`src/pyyaml/parser.rs` implements the event parser state machine. It
+detects the first syntax error with PyYAML's exact message and position
+(reported as `syntax error: ... (syntax)`), and feeds `loader.rs`, which
+composes events into plain values for configuration files. The whole crate
+is 100% safe Rust (`#![forbid(unsafe_code)]`); no C-derived YAML library
+is used.
 
-MegaLinter aims to support multiple configuration formats:
-1.  **Global Config**: `.megalinter.toml` for project-wide settings.
-2.  **Language-Specific Config**: Support for existing standards like `.yamllint` or `package.json` for JS-related linters.
-3.  **Inline Config**: Disabling rules via comments within files.
-- **Parallelism**: Uses `rayon` for multi-threaded file processing.
-- **Minimal Allocations**: Rules should aim to work with string slices (`&str`) where possible.
-- **Lazy Loading**: Languages and rules are registered at startup but only invoked as needed.
+## The linting pipeline
+
+`linter::run` works as follows:
+
+1. `# yamllint disable-file` on the first line skips the file.
+2. The parser detects a possible syntax error.
+3. Tokens (with prev/next/nextnext context), comments (found in the gaps
+   between tokens) and physical lines are generated and merged in line
+   order; each element is dispatched to the enabled rules of the matching
+   type (token / comment / line), in configuration order.
+4. Problems are cached per line and filtered through the inline-directive
+   state (`disable`, `enable`, `disable-line`).
+5. The syntax error, if any, is merged at the right position, suppressing a
+   cosmetic problem at the same location.
+
+Rules live in `src/rules/`, one module per rule, each producing identical
+message strings, positions and ordering to the upstream rule. Stateful
+rules (anchors, indentation, key-duplicates, key-ordering, quoted-strings,
+truthy) keep their per-file context in a `RuleRunner`.
+
+## Fixing and formatting
+
+`fix.rs` repeatedly lints and applies textual edits derived from reported
+problems until a fixed point (bounded number of passes). Fixers are
+classified:
+
+- **safe** — cannot change parsed semantics: trailing spaces, final
+  newline, newline type, blank-line trimming, document start/end markers,
+  comment spacing/indentation, spacing around `:` `,` `-` `{}` `[]`;
+- **unsafe** (`fix --unsafe`) — may change semantics for some consumers:
+  truthy normalization, quoting octal values, adding/removing string
+  quotes, line re-indentation.
+
+`format` applies the safe set only. `--dry-run` renders a unified diff and
+uses exit code 3 when changes would be required (distinct from 255 for
+software failures).
+
+## Testing strategy
+
+- `tests/parity.rs` / `tests/parity.sh`: run the real yamllint (from
+  `.venv`) and fastymllint side by side over `examples/yaml/` and
+  `tests/data/tricky/` with several configurations; stdout (yamllint
+  format) and exit codes must match exactly.
+- Token-level differential tests against PyYAML (see above).
+- `tests/lint_test.rs`: pure-Rust integration tests for linting, config,
+  fixing and output formats.
+- `bench/bench.sh`: speed comparison against yamllint (single small file,
+  single large file, many files).
