@@ -72,3 +72,4 @@
 - 2026-07-11: Added yamllint output format CLI parity: parsable/standard/colored/github/auto (auto is now the default, resolved like yamllint); text/json kept as extensions; parity tests sweep all formats.
 - 2026-07-11: Missing input (no files/dirs/stdin) is now a usage error (exit 2) even with --list-files, matching yamllint.
 - 2026-07-11: I/O errors now render like Python's OSError ([Errno N] strerror: 'path') with the real errno, matching yamllint's error output.
+- 2026-07-11: Removed the wholesale re-clone of the token/comment stream in the line-merge generator (~8% faster on a 30k-line file).

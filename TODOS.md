@@ -23,7 +23,7 @@ committed separately.
       hardcoded errno — wrong errno for non-ENOENT errors and a stray
       `(os error N)` suffix. Match Python's `OSError` string:
       `[Errno N] <strerror>: '<path>'`.
-- [ ] **4. Reduce token cloning in the linter pipeline** (backlog item):
+- [x] **4. Reduce token cloning in the linter pipeline** (backlog item):
       `token_or_comment_or_line_generator` re-clones every token/comment
       element (each holding up to four owned `Token`s) when merging with
       lines; restructure the merge to consume the vector instead.

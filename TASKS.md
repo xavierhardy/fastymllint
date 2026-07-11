@@ -23,4 +23,5 @@
       extent analysis)
 - [ ] Smarter `line-length` fixer (folding long scalars where safe)
 - [ ] Publish to crates.io; prebuilt binaries
-- [ ] Reduce token cloning in the linter pipeline (perf headroom)
+- [ ] Reduce remaining token cloning in the linter pipeline (neighbor
+      tokens in `TokenElem`; the merge-step re-clone is already gone)

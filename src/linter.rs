@@ -266,18 +266,24 @@ pub fn token_or_comment_or_line_generator(content: &str) -> (Vec<Elem>, Vec<char
     let (tok_or_com, buffer) = token_or_comment_generator(content);
     let lines = line_generator(&buffer);
 
+    // Consume the token/comment stream instead of cloning it: each element
+    // owns up to four `Token`s, so a wholesale re-clone here is expensive.
     let mut merged = Vec::with_capacity(tok_or_com.len() + lines.len());
-    let mut ti = 0;
+    let mut toks = tok_or_com.into_iter().peekable();
     let mut li = 0;
-    while ti < tok_or_com.len() || li < lines.len() {
-        if ti >= tok_or_com.len()
-            || (li < lines.len() && tok_or_com[ti].line_no() > lines[li].line_no)
-        {
+    loop {
+        let take_line = match toks.peek() {
+            None => li < lines.len(),
+            Some(t) => li < lines.len() && t.line_no() > lines[li].line_no,
+        };
+        if take_line {
             merged.push(Elem::Line(lines[li]));
             li += 1;
         } else {
-            merged.push(tok_or_com[ti].clone());
-            ti += 1;
+            match toks.next() {
+                Some(t) => merged.push(t),
+                None => break,
+            }
         }
     }
     (merged, buffer)
