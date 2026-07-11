@@ -23,8 +23,12 @@ tests). On top of that, fastymllint adds:
   safe fixes.
 - **Dry-run** (`--dry-run`): shows a unified diff without writing anything,
   and exits with a dedicated status code if changes would be made.
-- **Output formats**: `text` (default, one grep-friendly line per problem),
-  `json`, and `yamllint` (byte-identical to yamllint's standard output).
+- **Output formats**: all of yamllint's formats with byte-identical output —
+  `parsable`, `standard`, `colored`, `github`, and `auto` (the default,
+  resolved like yamllint: `github` inside GitHub Actions, `colored` on a
+  tty, `standard` otherwise) — plus two extensions: `text` (same as
+  `parsable`, one grep-friendly line per problem) and `json`. `yamllint` is
+  accepted as an alias for `standard`.
 
 ## Usage
 
@@ -33,7 +37,8 @@ tests). On top of that, fastymllint adds:
 fastymllint file.yaml dir/ -          # files, directories, or stdin ('-')
 fastymllint -c .yamllint file.yaml    # custom config file
 fastymllint -d relaxed file.yaml      # inline config data
-fastymllint -f yamllint file.yaml     # yamllint's exact output format
+fastymllint -f standard file.yaml     # yamllint's exact output format
+fastymllint -f github file.yaml       # GitHub Actions workflow commands
 fastymllint -f json file.yaml
 fastymllint -s --no-warnings dir/     # strict mode, errors only
 fastymllint --list-files dir/

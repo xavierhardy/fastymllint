@@ -198,6 +198,57 @@ fn json_output_format() {
 }
 
 #[test]
+fn colored_output_format() {
+    let problems = lint("key: value   \n"); // warning (doc-start) + error (trailing)
+    let reports = [FileReport {
+        path: "test.yaml",
+        problems: &problems,
+    }];
+    let out = render(&reports, OutputFormat::Colored, false);
+    assert!(out.starts_with("\x1b[4mtest.yaml\x1b[0m\n"), "{out:?}");
+    // Same layout as yamllint: padding thresholds count escape characters.
+    assert!(
+        out.contains(
+            "  \x1b[2m1:1\x1b[0m       \x1b[33mwarning\x1b[0m  \
+             missing document start \"---\"  \x1b[2m(document-start)\x1b[0m\n"
+        ),
+        "{out:?}"
+    );
+    assert!(out.contains("\x1b[31merror\x1b[0m"), "{out:?}");
+    assert!(out.ends_with("\n\n"));
+}
+
+#[test]
+fn github_output_format() {
+    let problems = lint("key: value   \n");
+    let reports = [FileReport {
+        path: "test.yaml",
+        problems: &problems,
+    }];
+    let out = render(&reports, OutputFormat::Github, false);
+    assert!(out.starts_with("::group::test.yaml\n"), "{out:?}");
+    assert!(
+        out.contains(
+            "::warning file=test.yaml,line=1,col=1::1:1 \
+             [document-start] missing document start \"---\"\n"
+        ),
+        "{out:?}"
+    );
+    assert!(out.ends_with("::endgroup::\n\n"), "{out:?}");
+}
+
+#[test]
+fn format_aliases() {
+    assert_eq!(OutputFormat::parse("parsable"), Some(OutputFormat::Text));
+    assert_eq!(
+        OutputFormat::parse("standard"),
+        Some(OutputFormat::Yamllint)
+    );
+    assert_eq!(OutputFormat::parse("auto"), Some(OutputFormat::Auto));
+    assert_ne!(OutputFormat::Auto.resolve(), OutputFormat::Auto);
+}
+
+#[test]
 fn no_warnings_filter() {
     let problems = lint("key: value   \n"); // warning (doc-start) + error (trailing)
     let reports = [FileReport {

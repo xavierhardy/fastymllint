@@ -4,7 +4,7 @@ Genuine improvements identified by reviewing the code against the reference
 yamllint (1.38.0, installed in `.venv`). Each item is implemented and
 committed separately.
 
-- [ ] **1. Output format CLI parity** (backlog item): support yamllint's
+- [x] **1. Output format CLI parity** (backlog item): support yamllint's
       `-f parsable|standard|colored|github|auto` in addition to
       `text`/`json`/`yamllint`, with byte-identical output:
       - `parsable` — same as fastymllint's `text` format;

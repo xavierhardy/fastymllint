@@ -7,7 +7,8 @@
 - [x] Port all 23 yamllint rules with byte-identical messages
 - [x] yamllint-compatible configuration (extends, levels, ignore, yaml-files,
       inline directives, rule options)
-- [x] Output formats: text (default), json, yamllint (exact standard format)
+- [x] Output formats: all yamllint formats (parsable, standard, colored,
+      github, auto — the default) plus text and json extensions
 - [x] Parallel file processing (rayon, `-j/--jobs`)
 - [x] Auto-fix (`fix`, `fix --unsafe`) and auto-format (`format`) with
       `--dry-run` diffs and dedicated exit code
@@ -17,8 +18,6 @@
 
 ## Backlog
 
-- [ ] Support yamllint's `github`/`colored`/`parsable`/`auto` output format
-      aliases for full CLI flag compatibility
 - [ ] `locale` config option (affects `key-ordering` collation in yamllint)
 - [ ] Fixer for `key-duplicates` (delete duplicate entries; needs block
       extent analysis)

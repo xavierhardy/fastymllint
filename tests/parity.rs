@@ -47,6 +47,9 @@ fn run(cmd: &Path, args: &[&str], files: &[PathBuf]) -> Run {
         .args(args)
         .args(files)
         .current_dir(repo_root())
+        // Make `-f auto` deterministic (also on GitHub Actions runners).
+        .env_remove("GITHUB_ACTIONS")
+        .env_remove("GITHUB_WORKFLOW")
         .output()
         .unwrap_or_else(|e| panic!("failed to run {cmd:?}: {e}"));
     Run {
@@ -101,6 +104,29 @@ fn parity_strict_all_rules_config() {
 fn parity_quotes_required_config() {
     let files = corpus();
     compare(&["-c", "tests/configs/quotes_required.yaml"], &files);
+}
+
+/// Every output format yamllint knows must be byte-identical, including
+/// `colored` (explicitly selecting it emits ANSI escapes even into a pipe)
+/// and `auto` (which resolves to `standard` here: stdout is a pipe and the
+/// GitHub env vars are removed by `run`).
+#[test]
+fn parity_output_formats() {
+    let files = corpus();
+    for format in ["parsable", "standard", "colored", "github", "auto"] {
+        let yl = run(
+            &yamllint(),
+            &["-f", format, "-d", "extends: default"],
+            &files,
+        );
+        let fy = run(
+            Path::new(env!("CARGO_BIN_EXE_fastymllint")),
+            &["-f", format, "-d", "extends: default"],
+            &files,
+        );
+        assert_eq!(yl.stdout, fy.stdout, "output mismatch for -f {format}");
+        assert_eq!(yl.code, fy.code, "exit code mismatch for -f {format}");
+    }
 }
 
 #[test]

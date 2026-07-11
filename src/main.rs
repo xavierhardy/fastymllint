@@ -64,9 +64,12 @@ struct Cli {
     #[arg(short = 'd', long = "config-data", global = true)]
     config_data: Option<String>,
 
-    /// Output format
-    #[arg(short = 'f', long = "format", global = true, default_value = "text",
-          value_parser = ["text", "json", "yamllint", "standard"])]
+    /// Output format ('text' and 'json' are fastymllint extensions; the
+    /// rest match yamllint, with 'auto' picking github/colored/standard
+    /// from the environment)
+    #[arg(short = 'f', long = "format", global = true, default_value = "auto",
+          value_parser = ["parsable", "standard", "colored", "github", "auto",
+                          "text", "json", "yamllint"])]
     format: String,
 
     /// Return non-zero exit code on warnings as well as errors
@@ -219,7 +222,9 @@ fn lint_command(cli: &Cli, conf: &YamlLintConfig) -> ExitCode {
         return ExitCode::SUCCESS;
     }
 
-    let format = OutputFormat::parse(&cli.format).expect("validated by clap");
+    let format = OutputFormat::parse(&cli.format)
+        .expect("validated by clap")
+        .resolve();
 
     let mut results: Vec<FileResult> = lint_files(&files, conf, cli.jobs);
 
