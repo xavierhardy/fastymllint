@@ -321,7 +321,7 @@ fn fix_command(
         let data = match std::fs::read(file) {
             Ok(d) => d,
             Err(e) => {
-                eprintln!("{}: {e}", file.display());
+                eprintln!("{}", fastymllint::runner::os_error_message(&e, file));
                 return ExitCode::from(EXIT_SOFTWARE_FAILURE);
             }
         };

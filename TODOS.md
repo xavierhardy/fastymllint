@@ -18,7 +18,7 @@ committed separately.
 - [x] **2. Usage-error parity for missing input**: `fastymllint --list-files`
       with no files currently exits 0; yamllint treats missing
       `FILE_OR_DIR`/`-` as a usage error (exit 2) even with `--list-files`.
-- [ ] **3. I/O error message parity**: unreadable files print
+- [x] **3. I/O error message parity**: unreadable files print
       `[Errno 2] No such file or directory (os error 2): 'x.yaml'` with a
       hardcoded errno — wrong errno for non-ENOENT errors and a stray
       `(os error N)` suffix. Match Python's `OSError` string:

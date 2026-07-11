@@ -43,6 +43,23 @@ pub struct FileResult {
     pub error: Option<String>,
 }
 
+/// Format an I/O error the way Python renders `OSError` (what yamllint
+/// prints): `[Errno N] <strerror>: '<path>'`. Rust's own `Display` appends
+/// ` (os error N)` instead, so strip that and prepend the errno.
+pub fn os_error_message(e: &std::io::Error, path: &Path) -> String {
+    match e.raw_os_error() {
+        Some(errno) => {
+            let msg = e.to_string();
+            let msg = msg
+                .strip_suffix(&format!(" (os error {errno})"))
+                .unwrap_or(&msg)
+                .to_string();
+            format!("[Errno {errno}] {msg}: '{}'", path.display())
+        }
+        None => format!("{e}: '{}'", path.display()),
+    }
+}
+
 pub fn lint_one(path: &Path, conf: &YamlLintConfig) -> FileResult {
     let display_path = {
         let s = path.to_string_lossy().to_string();
@@ -56,7 +73,7 @@ pub fn lint_one(path: &Path, conf: &YamlLintConfig) -> FileResult {
                 path: path.to_path_buf(),
                 display_path,
                 problems: Vec::new(),
-                error: Some(format!("[Errno 2] {e}: '{}'", path.display())),
+                error: Some(os_error_message(&e, path)),
             };
         }
     };

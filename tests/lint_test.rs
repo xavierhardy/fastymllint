@@ -248,6 +248,24 @@ fn format_aliases() {
     assert_ne!(OutputFormat::Auto.resolve(), OutputFormat::Auto);
 }
 
+/// Unreadable files must be reported with Python's OSError formatting
+/// (`[Errno N] <strerror>: '<path>'`), like yamllint prints.
+#[test]
+fn io_error_message_matches_python_oserror() {
+    let missing = std::path::Path::new("no-such-file.yaml");
+    let result = fastymllint::runner::lint_one(missing, &YamlLintConfig::default_config());
+    assert_eq!(
+        result.error.as_deref(),
+        Some("[Errno 2] No such file or directory: 'no-such-file.yaml'")
+    );
+
+    // Non-ENOENT errors keep their real errno instead of a hardcoded 2.
+    let dir = std::path::Path::new(".");
+    let result = fastymllint::runner::lint_one(dir, &YamlLintConfig::default_config());
+    let err = result.error.expect("reading a directory must fail");
+    assert_eq!(err, "[Errno 21] Is a directory: '.'");
+}
+
 /// Like yamllint, running without any file/dir/stdin input is a usage error
 /// (exit 2), including with --list-files.
 #[test]
