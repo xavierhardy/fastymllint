@@ -248,6 +248,20 @@ fn format_aliases() {
     assert_ne!(OutputFormat::Auto.resolve(), OutputFormat::Auto);
 }
 
+/// Like yamllint, running without any file/dir/stdin input is a usage error
+/// (exit 2), including with --list-files.
+#[test]
+fn cli_missing_input_is_usage_error() {
+    for args in [&[][..], &["--list-files"][..]] {
+        let out = std::process::Command::new(env!("CARGO_BIN_EXE_fastymllint"))
+            .args(args)
+            .output()
+            .expect("run fastymllint");
+        assert_eq!(out.status.code(), Some(2), "args: {args:?}");
+        assert!(!out.stderr.is_empty(), "args: {args:?}");
+    }
+}
+
 #[test]
 fn no_warnings_filter() {
     let problems = lint("key: value   \n"); // warning (doc-start) + error (trailing)

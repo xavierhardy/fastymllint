@@ -70,3 +70,4 @@
 - 2026-06-11: Added auto-fix (safe/unsafe) and auto-format with --dry-run diffs (exit code 3) and semantics-preservation tests.
 - 2026-06-11: Added side-by-side parity test suite vs yamllint (208+ comparisons) and bench harness (3-10x faster).
 - 2026-07-11: Added yamllint output format CLI parity: parsable/standard/colored/github/auto (auto is now the default, resolved like yamllint); text/json kept as extensions; parity tests sweep all formats.
+- 2026-07-11: Missing input (no files/dirs/stdin) is now a usage error (exit 2) even with --list-files, matching yamllint.

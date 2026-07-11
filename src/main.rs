@@ -204,7 +204,9 @@ fn main() -> ExitCode {
 fn lint_command(cli: &Cli, conf: &YamlLintConfig) -> ExitCode {
     let (paths, use_stdin) = split_stdin(&cli.files);
 
-    if paths.is_empty() && !use_stdin && !cli.list_files {
+    // Like yamllint, missing input is a usage error (exit 2) even with
+    // --list-files.
+    if paths.is_empty() && !use_stdin {
         eprintln!("error: at least one file or directory (or '-' for stdin) is required");
         return ExitCode::from(2);
     }

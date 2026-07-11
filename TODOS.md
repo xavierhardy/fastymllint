@@ -15,7 +15,7 @@ committed separately.
         `colored` on a tty, `standard` otherwise — and make it the default,
         like yamllint (previously `text` was the default).
       Extend the parity suite to sweep `-f parsable` and `-f github`.
-- [ ] **2. Usage-error parity for missing input**: `fastymllint --list-files`
+- [x] **2. Usage-error parity for missing input**: `fastymllint --list-files`
       with no files currently exits 0; yamllint treats missing
       `FILE_OR_DIR`/`-` as a usage error (exit 2) even with `--list-files`.
 - [ ] **3. I/O error message parity**: unreadable files print
